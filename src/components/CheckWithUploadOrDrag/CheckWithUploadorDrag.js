@@ -5,6 +5,8 @@ import { useState } from "react";
 import axios from "axios";
 import { JSONTree } from "react-json-tree";
 
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
+
 export function CheckWithUploadOrDrag() {
   const toBase64 = (file) =>
     new Promise((resolve, reject) => {
@@ -26,33 +28,11 @@ export function CheckWithUploadOrDrag() {
           <div>
             <Dropzone
               onDrop={async (files) => {
-                console.log("accepted files", files);
-                const f = files[0];
-                // setResult(Object.assign)
-                const base64StringImage = await toBase64(f);
-                console.log(base64StringImage);
-                axios({
-                  method: "POST",
-                  url: "https://detect.roboflow.com/fall-detection-ca3o8/4",
-                  params: {
-                    api_key: "prjQGYBjOCrHnyhxB6fP",
-                  },
-                  data: base64StringImage,
-                  headers: {
-                    "Content-Type": "application/x-www-form-urlencoded",
-                  },
-                })
-                  .then(function (response) {
-                    console.log(response.data);
-                    setResult(response.data);
-                    // setResult(JSON.stringify(response.data));
-                  })
-                  .catch(function (error) {
-                    console.log(error.message);
-                    setResult(error.message);
-
-                    // setResult(JSON.stringify(error.message))
-                  });
+                const base64StringImage = await toBase64(files[0]);
+                axios
+                  .post(`${API_URL}/analyze`, { image: base64StringImage })
+                  .then((response) => setResult(response.data))
+                  .catch((error) => setResult(error.message));
               }}
               onReject={(files) => console.log("rejected files", files)}
               maxSize={3 * 1024 ** 2}

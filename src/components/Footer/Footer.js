@@ -4,7 +4,7 @@ import {
   IconBrandInstagram,
   IconBrandFacebook,
 } from "@tabler/icons-react";
-import { MantineLogo } from "@mantine/ds";
+
 
 const useStyles = createStyles((theme) => ({
   footer: {

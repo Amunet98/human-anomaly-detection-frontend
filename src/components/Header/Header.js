@@ -7,10 +7,12 @@ import {
   Burger,
   Paper,
   Transition,
+  ActionIcon,
+  useMantineColorScheme,
   rem,
 } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
-import { MantineLogo } from '@mantine/ds';
+import { IconSun, IconMoonStars } from '@tabler/icons-react';
 import {Link} from "react-router-dom"
 const HEADER_HEIGHT = rem(83);
 
@@ -91,36 +93,42 @@ export function HeaderResponsive({ links }) {
   const [opened, { toggle, close }] = useDisclosure(false);
   const [active, setActive] = useState(links[0].link);
   const { classes, cx } = useStyles();
+  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
 
   const items = links.map((link) => (
-    <a
+    <Link
       key={link.label}
-      href={link.link}
+      to={link.link}
       className={cx(classes.link, { [classes.linkActive]: active === link.link })}
-      onClick={(event) => {
-        event.preventDefault();
+      onClick={() => {
         setActive(link.link);
-        console.log();
-        
         close();
       }}
     >
-      <Link to={link.link}> 
       {link.label}
-      </Link>
-    </a>
+    </Link>
   ));
 
   return (
     <Header height={HEADER_HEIGHT} mb={120} className={classes.root}>
       <Container className={classes.header}>
-      <Link to={'/'}> 
-      <img alt='logo' width={150} className=' mt-3' height={70} src="/final.png" />
+      <Link to={'/'}>
+          <img alt='logo' width={150} className=' mt-3' height={70} src="/final.png" />
+          <span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>Human Anomaly System</span>
       </Link>
-        {/* <span className=' text-2xl text-black font-mono font-black'>Skin Cancer Detector</span> */}
+
         <Group spacing={5} className={classes.links}>
           {items}
         </Group>
+
+        <ActionIcon
+          variant="outline"
+          color={colorScheme === 'dark' ? 'yellow' : 'blue'}
+          onClick={() => toggleColorScheme()}
+          title="Toggle color scheme"
+        >
+          {colorScheme === 'dark' ? <IconSun size="1.1rem" /> : <IconMoonStars size="1.1rem" />}
+        </ActionIcon>
 
         <Burger opened={opened} onClick={toggle} className={classes.burger} size="sm" />
 

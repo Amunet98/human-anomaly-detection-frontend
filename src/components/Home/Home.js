@@ -6,35 +6,34 @@ import { FooterLinks } from '../Footer/Footer';
 import socketIOClient from 'socket.io-client';
 import React, { useEffect, useRef } from 'react';
 
-export const Home = ({socket}) => {
-    const detectedDetails = useRef();
-    const [details,setDetails] = React.useState("Not Detected")
+export const Home = ({ socket }) => {
+    const [details, setDetails] = React.useState("Not Detected");
+
     useEffect(() => {
-      //connected to backend
-      const socket2 = socketIOClient('http://localhost:5000');
-      console.log(socket2);
-      socket2.on('detected', (data) => {
-        console.log(data);
-        // Update the video element with the received frame
-        // const d  = JSON.stringify(data)
-        setDetails(data)
-        // detectedDetails.current.data = JSON.stringify(data)
-      });
-  
+      // Use the unified socket passed as a prop
+      if (socket) {
+        socket.on('detected', (data) => {
+          setDetails(data);
+        });
+      }
+
+      // Clean up the listener when the component unmounts
       return () => {
-        socket.disconnect();
+        if (socket) socket.off('detected');
       };
-    }, []);
+    }, [socket]);
+
     return (
         <div className='flexs flex-col mt-20 justify-center'>
-            <div className=' mb-5 font-mono ml-2 text-xl font-medium text-center'>
+            <div className='mb-5 font-mono ml-2 text-xl font-medium text-center'>
                 Live Feed
             </div>
             <div className='live mt-2 mb-20 flex justify-center bg-slate-700'>
-                <LiveStream />
+                {/* Pass the socket prop to LiveStream */}
+                <LiveStream socket={socket} />
             </div>
             <div className='text-center'>
-                <span className=' p-3 rounded-xl font-mono font-bold text-lg text-black w-48 bg-yellow-400' >
+                <span className='p-3 rounded-xl font-mono font-bold text-lg text-black w-48 bg-yellow-400'>
                     {details}
                 </span>
             </div>

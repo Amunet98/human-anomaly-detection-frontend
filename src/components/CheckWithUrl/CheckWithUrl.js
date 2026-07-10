@@ -3,7 +3,8 @@ import { TextInput, createStyles, Button, Progress, rem } from '@mantine/core';
 import { useInterval } from '@mantine/hooks';
 import axios from 'axios';
 import { JSONTree } from 'react-json-tree';
-import { Buffer } from 'buffer';
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
 
 
 const useStyles = createStyles((theme, { floating }) => ({
@@ -86,14 +87,6 @@ export function CheckWithUrl() {
         20
     );
 
-    const getBase64 = async (url) => {
-        return axios
-            .get(url, {
-                responseType: 'arraybuffer'
-            })
-            .then(response => Buffer.from(response.data, 'binary').toString('base64'))
-    }
-
     return (
         <div>
             <span className='text-center text-lg font-mono font-medium'>
@@ -116,35 +109,10 @@ export function CheckWithUrl() {
                 className="bg-green-500 hover:bg-green-500 text-gray-50 mt-2"
                 onClick={async () => {
                     loaded ? setLoaded(false) : !interval.active && interval.start();
-                    console.log(value);
-                    await getBase64(value).then((d) => {
-                        axios({
-                            method: "POST",
-                            url: "https://detect.roboflow.com/fall-detection-ca3o8/4",
-                            params: {
-                              api_key: "prjQGYBjOCrHnyhxB6fP",
-                            },
-                            data: d,
-                            headers: {
-                              "Content-Type": "application/x-www-form-urlencoded",
-                            },
-                          })
-                            .then(function (response) {
-                                console.log(response.data);
-                                setResult(response.data);
-                                // setResult(JSON.stringify(response.data));
-                            })
-                            .catch(function (error) {
-                                console.log(error.message);
-                                setResult(error.message)
-
-                                // setResult(JSON.stringify(error.message))
-                            });
-                    })
-                    // console.log(base64StringImage.then((d) => {
-                    //     console.log(d);
-                    // }));
-
+                    axios
+                        .post(`${API_URL}/analyze`, { imageUrl: value })
+                        .then((response) => setResult(response.data))
+                        .catch((error) => setResult(error.message));
                 }}
                 color={loaded ? 'teal' : theme.primaryColor}
             >
