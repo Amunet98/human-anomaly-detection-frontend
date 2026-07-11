@@ -1,5 +1,13 @@
 # Human Anomaly Detection — Frontend
 
+[![Live Demo](https://img.shields.io/badge/Live%20Demo-bimeshpoudel.com.np-facc15)](https://www.bimeshpoudel.com.np/human-anomaly-live-demo)
+[![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white)](https://react.dev)
+[![Vite](https://img.shields.io/badge/Vite-646cff?logo=vite&logoColor=white)](https://vite.dev)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind-06b6d4?logo=tailwindcss&logoColor=white)](https://tailwindcss.com)
+[![Socket.IO](https://img.shields.io/badge/Socket.IO-010101?logo=socketdotio)](https://socket.io)
+
+**Live demo:** https://www.bimeshpoudel.com.np/human-anomaly-live-demo
+
 React + Vite + Mantine dashboard for the human anomaly (fall) detection
 system. Shows a live video feed with real-time detection alerts, plus
 upload/URL image checks — a rewrite of the original Create React App
