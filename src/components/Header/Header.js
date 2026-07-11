@@ -117,7 +117,7 @@ export function HeaderResponsive({ links }) {
       className={classes.root}
       sx={(theme) => ({
         backgroundColor:
-          theme.colorScheme === 'dark' ? 'rgba(17, 24, 39, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+          theme.colorScheme === 'dark' ? 'rgba(22, 23, 29, 0.85)' : 'rgba(255, 255, 255, 0.85)',
         backdropFilter: 'blur(12px)',
         borderBottom:
           theme.colorScheme === 'dark'
