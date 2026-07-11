@@ -26,12 +26,6 @@ export const Home = ({ socket }) => {
       };
     }, [socket]);
 
-    // Shared by the upload/URL check panels so a manual check also updates
-    // this badge, not just live-feed detections.
-    const handleAnalysisResult = (data) => {
-        setDetails(data?.top?.className || 'Not Detected');
-    };
-
     return (
         <div className='flex flex-col mt-20 justify-center'>
             <div className='mb-5 font-mono ml-2 text-xl font-medium text-center'>
@@ -51,11 +45,11 @@ export const Home = ({ socket }) => {
             <div className='mb-5 font-mono ml-2 text-xl font-medium text-center'>Check with url and Image Upload</div>
             <div className='mb-20 mt-14 flex self-center flex-col sm:flex-row justify-center items-center gap-8 sm:gap-4 px-4'>
                 <div className='flex w-full sm:w-auto justify-center'>
-                    < CheckWithUploadOrDrag onResult={handleAnalysisResult} />
+                    < CheckWithUploadOrDrag />
                 </div>
                 <Divider my="sm" orientation={isMobile ? 'horizontal' : 'vertical'} className={isMobile ? 'w-full' : ''} />
                 <div className='flex w-full sm:w-auto justify-center'>
-                    <CheckWithUrl onResult={handleAnalysisResult} />
+                    <CheckWithUrl />
                 </div>
             </div>
             <hr />
