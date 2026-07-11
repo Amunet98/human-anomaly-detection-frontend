@@ -21,8 +21,15 @@ const LiveStream = ({ socket }) => {
     }, [socket]); // Only re-run if the socket prop changes
 
     return (
-      <div className="items-center mt-5 backdrop-blur-sm justify-center rounded-2xl">
-        <img ref={videoRef} style={{ borderRadius: '15px' }} height={500} width={1200} alt='Live Stream' />
+      <div className="items-center mt-5 backdrop-blur-sm justify-center rounded-2xl w-full px-4">
+        {/* Fixed 1200x500 attributes used to force a 1200px-wide page on
+            phones (~375-430px viewports) - scale to the container instead,
+            capped at a sane desktop size, matching the camera's 4:3 capture. */}
+        <img
+          ref={videoRef}
+          className="rounded-2xl w-full max-w-3xl mx-auto block aspect-[4/3] object-cover bg-black/20"
+          alt='Live Stream'
+        />
       </div>
     );
   };

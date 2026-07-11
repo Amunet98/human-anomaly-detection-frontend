@@ -36,13 +36,13 @@ const useStyles = createStyles((theme) => ({
 
 export function FooterLinks() {
   return (
-    <div className=" flex justify-center self-center mt-8 bottom-0 fixed">
-      <div>
-        <span className="flex  flex-row justify-center rounded-lg pl-36 pr-36 w-auto self-center bg-black">
-          <span className="self-center text-lg mr-1">
+    <div className="flex justify-center self-center mt-8 mb-4 px-4 w-full">
+      <div className="max-w-full">
+        <span className="flex flex-row flex-wrap items-center justify-center gap-1 text-center rounded-lg px-4 py-2 sm:px-8 bg-black">
+          <span className="self-center text-sm sm:text-lg">
             Made In <em>"AIT"</em> By "Bimesh Poudel and Prasanna singh k.c." with
           </span>
-          <span className="text-3xl">
+          <span className="text-2xl sm:text-3xl">
             💗
           </span>
         </span>

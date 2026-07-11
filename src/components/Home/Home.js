@@ -1,13 +1,16 @@
 import LiveStream from '../LiveStream/LiveStream';
 import { CheckWithUploadOrDrag } from "../CheckWithUploadOrDrag/CheckWithUploadorDrag"
 import { CheckWithUrl } from "../CheckWithUrl/CheckWithUrl"
-import { Divider } from '@mantine/core';
+import { Divider, useMantineTheme } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { FooterLinks } from '../Footer/Footer';
 import socketIOClient from 'socket.io-client';
 import React, { useEffect, useRef } from 'react';
 
 export const Home = ({ socket }) => {
     const [details, setDetails] = React.useState("Not Detected");
+    const theme = useMantineTheme();
+    const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
 
     useEffect(() => {
       // Use the unified socket passed as a prop
@@ -24,7 +27,7 @@ export const Home = ({ socket }) => {
     }, [socket]);
 
     return (
-        <div className='flexs flex-col mt-20 justify-center'>
+        <div className='flex flex-col mt-20 justify-center'>
             <div className='mb-5 font-mono ml-2 text-xl font-medium text-center'>
                 Live Feed
             </div>
@@ -32,20 +35,20 @@ export const Home = ({ socket }) => {
                 {/* Pass the socket prop to LiveStream */}
                 <LiveStream socket={socket} />
             </div>
-            <div className='text-center'>
-                <span className='p-3 rounded-xl font-mono font-bold text-lg text-black w-48 bg-yellow-400'>
+            <div className='text-center px-4'>
+                <span className='inline-block p-3 rounded-xl font-mono font-bold text-lg text-black bg-yellow-400'>
                     {details}
                 </span>
             </div>
 
             <hr className='m-10' />
             <div className='mb-5 font-mono ml-2 text-xl font-medium text-center'>Check with url and Image Upload</div>
-            <div className='mb-20 mt-14 flex self-center flex-row justify-center'>
-                <div className='flex'>
+            <div className='mb-20 mt-14 flex self-center flex-col sm:flex-row justify-center items-center gap-8 sm:gap-4 px-4'>
+                <div className='flex w-full sm:w-auto justify-center'>
                     < CheckWithUploadOrDrag />
                 </div>
-                <Divider my="sm" className='mr-16 ml-16' orientation='vertical' />
-                <div className='flex'>
+                <Divider my="sm" orientation={isMobile ? 'horizontal' : 'vertical'} className={isMobile ? 'w-full' : ''} />
+                <div className='flex w-full sm:w-auto justify-center'>
                     <CheckWithUrl />
                 </div>
             </div>

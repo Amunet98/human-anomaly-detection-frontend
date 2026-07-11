@@ -130,7 +130,7 @@ export function CheckWithUrl() {
                 Check
             </Button>
 
-            <div className='mt-10 w-96 h-52 flex-wrap'>
+            <div className='mt-10 w-full max-w-96 h-52 overflow-auto flex-wrap'>
                 {results ?
                     (<div>
                         <div className=' text-xl font-bold font-mono'>
