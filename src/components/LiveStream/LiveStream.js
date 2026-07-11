@@ -87,7 +87,7 @@ const LiveStream = ({ socket }) => {
   }, [usingOwnCamera, socket]);
 
   return (
-    <div className="items-center mt-5 backdrop-blur-sm justify-center rounded-2xl w-full px-4">
+    <div className="flex flex-col items-center mt-5 backdrop-blur-sm rounded-2xl w-full px-4">
       {/* Fixed 1200x500 attributes used to force a 1200px-wide page on
           phones (~375-430px viewports) - scale to the container instead,
           capped at a sane desktop size, matching the camera's 4:3 capture. */}
