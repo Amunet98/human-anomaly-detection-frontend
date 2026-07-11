@@ -12,31 +12,51 @@ const LiveStream = ({ socket }) => {
   const streamRef = useRef();
   const [usingOwnCamera, setUsingOwnCamera] = useState(false);
   const [details, setDetails] = useState('Not Detected');
+  // 'user' = front camera, 'environment' = back camera. `ideal` (not `exact`)
+  // so devices with a single camera (laptops) still match instead of failing.
+  const [facingMode, setFacingMode] = useState('user');
+  const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
 
   // Try the visitor's own camera first; fall back to the shared demo feed
   // (server-opencv's camera/sample video, relayed by the backend) if
-  // permission is denied or no camera is available.
+  // permission is denied or no camera is available. Re-runs on flip: phones
+  // can't open both lenses at once, so the old stream is stopped before
+  // requesting the other one.
   useEffect(() => {
     let cancelled = false;
-    navigator.mediaDevices?.getUserMedia?.({ video: true })
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+
+    navigator.mediaDevices?.getUserMedia?.({ video: { facingMode: { ideal: facingMode } } })
       .then((stream) => {
         if (cancelled) {
           stream.getTracks().forEach((track) => track.stop());
           return;
         }
         streamRef.current = stream;
+        if (videoRef.current) videoRef.current.srcObject = stream;
         setUsingOwnCamera(true);
+        // Labels are only populated after permission is granted, so probe
+        // for a second camera here rather than on mount.
+        navigator.mediaDevices.enumerateDevices()
+          .then((devices) => {
+            if (!cancelled) {
+              setHasMultipleCameras(devices.filter((d) => d.kind === 'videoinput').length > 1);
+            }
+          })
+          .catch(() => {});
       })
       .catch(() => {
         // Permission denied, no camera, or unsupported browser - keep
         // showing the shared demo feed instead.
+        if (!cancelled) setUsingOwnCamera(false);
       });
 
     return () => {
       cancelled = true;
       streamRef.current?.getTracks().forEach((track) => track.stop());
     };
-  }, []);
+  }, [facingMode]);
 
   useEffect(() => {
     if (usingOwnCamera && videoRef.current && streamRef.current) {
@@ -93,13 +113,26 @@ const LiveStream = ({ socket }) => {
           capped at a sane desktop size, matching the camera's 4:3 capture. */}
       <canvas ref={canvasRef} style={{ display: 'none' }} />
       {usingOwnCamera ? (
-        <video
-          ref={videoRef}
-          autoPlay
-          playsInline
-          muted
-          className="rounded-2xl w-full max-w-3xl mx-auto block aspect-[4/3] object-cover bg-black/20"
-        />
+        <div className="relative w-full max-w-3xl mx-auto">
+          <video
+            ref={videoRef}
+            autoPlay
+            playsInline
+            muted
+            className="rounded-2xl w-full block aspect-[4/3] object-cover bg-black/20"
+          />
+          {hasMultipleCameras && (
+            <button
+              type="button"
+              onClick={() => setFacingMode((mode) => (mode === 'user' ? 'environment' : 'user'))}
+              className="absolute bottom-3 right-3 p-2 rounded-full bg-black/50 text-white text-xl leading-none backdrop-blur-sm"
+              aria-label="Switch camera"
+              title="Switch camera"
+            >
+              🔄
+            </button>
+          )}
+        </div>
       ) : (
         <img
           ref={imgRef}
