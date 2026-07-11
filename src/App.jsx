@@ -15,7 +15,7 @@ const socket = io(API_URL, {
   transports: ["websocket"]
 });
 
-const headerLinks = [{ link: '/', label: 'Home' }, { link: '/about', label: 'About US' }];
+const headerLinks = [{ link: '/', label: 'home' }, { link: '/about', label: 'about us' }];
 
 // When served through the portfolio's microfrontends proxy at
 // bimeshpoudel.com.np/human-anomaly-live-demo, the URL keeps that prefix

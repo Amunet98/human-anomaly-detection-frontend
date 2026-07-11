@@ -14,7 +14,6 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import { IconSun, IconMoonStars } from '@tabler/icons-react';
 import {Link} from "react-router-dom"
-import logo from '../../assets/final.png'
 const HEADER_HEIGHT = rem(83);
 
 const useStyles = createStyles((theme) => ({
@@ -67,6 +66,7 @@ const useStyles = createStyles((theme) => ({
     color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.colors.gray[7],
     fontSize: theme.fontSizes.sm,
     fontWeight: 500,
+    fontFamily: "ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace",
 
     '&:hover': {
       backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0],
@@ -80,8 +80,8 @@ const useStyles = createStyles((theme) => ({
 
   linkActive: {
     '&, &:hover': {
-      backgroundColor: theme.fn.variant({ variant: 'light', color: theme.primaryColor }).background,
-      color: theme.fn.variant({ variant: 'light', color: theme.primaryColor }).color,
+      backgroundColor: 'rgba(220, 38, 38, 0.12)',
+      color: '#ef4444',
     },
   },
 }));
@@ -106,16 +106,32 @@ export function HeaderResponsive({ links }) {
         close();
       }}
     >
-      {link.label}
+      <span style={{ color: '#ef4444', marginRight: 6 }}>$</span> {link.label}
     </Link>
   ));
 
   return (
-    <Header height={HEADER_HEIGHT} mb={120} className={classes.root}>
+    <Header
+      height={HEADER_HEIGHT}
+      mb={120}
+      className={classes.root}
+      sx={(theme) => ({
+        backgroundColor:
+          theme.colorScheme === 'dark' ? 'rgba(17, 24, 39, 0.85)' : 'rgba(255, 255, 255, 0.85)',
+        backdropFilter: 'blur(12px)',
+        borderBottom:
+          theme.colorScheme === 'dark'
+            ? '1px solid rgba(255, 255, 255, 0.08)'
+            : '1px solid rgba(0, 0, 0, 0.08)',
+      })}
+    >
       <Container className={classes.header}>
-      <Link to={'/'}>
-          <img alt='logo' width={150} className=' mt-3' height={70} src={logo} />
-          <span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>Human Anomaly System</span>
+      <Link to={'/'} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <span className='had-mark'>HAD</span>
+          <span className='had-name'>
+            Human Anomaly Detection
+            <span className='had-sub'>real-time fall detection</span>
+          </span>
       </Link>
 
         <Group spacing={5} className={classes.links}>

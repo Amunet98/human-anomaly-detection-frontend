@@ -1,0 +1,55 @@
+
+/* Facelift: echo the portfolio's design language (accent #dc2626,
+   mono labels, pebble radii) so the demo feels like the same person. */
+.had-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex-shrink: 0;
+  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace;
+  font-weight: 700;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  color: #ef4444;
+  background: rgba(220, 38, 38, 0.12);
+  border: 1.5px solid rgba(220, 38, 38, 0.45);
+  border-radius: 58% 42% 45% 55% / 48% 58% 42% 52%;
+}
+
+.had-name {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.had-sub {
+  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace;
+  font-weight: 400;
+  font-size: 0.62rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  opacity: 0.55;
+}
+
+.section-tag {
+  display: inline-flex;
+  align-items: center;
+  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #ef4444;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid rgba(220, 38, 38, 0.45);
+  background: rgba(220, 38, 38, 0.1);
+  border-radius: 1.2em 0.6em 1.1em 0.7em / 0.7em 1.1em 0.6em 1.2em;
+}
+
+.pebble-badge {
+  border-radius: 1.1em 0.7em 1.2em 0.6em / 0.6em 1.2em 0.7em 1.1em;
+}

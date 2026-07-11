@@ -154,7 +154,7 @@ const LiveStream = ({ socket }) => {
         </div>
       )}
       <div className='text-center px-4 mt-5'>
-        <span className='inline-block p-3 rounded-xl font-mono font-bold text-lg text-black bg-yellow-400'>
+        <span className='inline-block px-5 py-2.5 pebble-badge font-mono font-bold text-lg text-black bg-yellow-400'>
           {details}
         </span>
       </div>
