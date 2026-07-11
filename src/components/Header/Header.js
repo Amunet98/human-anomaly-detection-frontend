@@ -14,6 +14,7 @@ import {
 import { useDisclosure } from '@mantine/hooks';
 import { IconSun, IconMoonStars } from '@tabler/icons-react';
 import {Link} from "react-router-dom"
+import logo from '../../assets/final.png'
 const HEADER_HEIGHT = rem(83);
 
 const useStyles = createStyles((theme) => ({
@@ -113,7 +114,7 @@ export function HeaderResponsive({ links }) {
     <Header height={HEADER_HEIGHT} mb={120} className={classes.root}>
       <Container className={classes.header}>
       <Link to={'/'}>
-          <img alt='logo' width={150} className=' mt-3' height={70} src="/final.png" />
+          <img alt='logo' width={150} className=' mt-3' height={70} src={logo} />
           <span style={{ fontWeight: 'bold', fontSize: '1.2rem' }}>Human Anomaly System</span>
       </Link>
 
