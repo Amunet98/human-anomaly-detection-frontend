@@ -7,7 +7,7 @@ import { JSONTree } from "react-json-tree";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
 
-export function CheckWithUploadOrDrag() {
+export function CheckWithUploadOrDrag({ onResult }) {
   const toBase64 = (file) =>
     new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -31,8 +31,14 @@ export function CheckWithUploadOrDrag() {
                 const base64StringImage = await toBase64(files[0]);
                 axios
                   .post(`${API_URL}/analyze`, { image: base64StringImage })
-                  .then((response) => setResult(response.data))
-                  .catch((error) => setResult(error.message));
+                  .then((response) => {
+                    setResult(response.data);
+                    onResult?.(response.data);
+                  })
+                  .catch((error) => {
+                    setResult(error.message);
+                    onResult?.(null);
+                  });
               }}
               onReject={(files) => console.log("rejected files", files)}
               maxSize={3 * 1024 ** 2}

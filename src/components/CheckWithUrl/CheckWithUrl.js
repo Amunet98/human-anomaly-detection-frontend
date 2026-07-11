@@ -63,7 +63,7 @@ const useStyles = createStyles((theme, { floating }) => ({
 
 
 
-export function CheckWithUrl() {
+export function CheckWithUrl({ onResult }) {
     const [focused, setFocused] = useState(false);
     const [value, setValue] = useState('');
     const { classes, theme } = useStyles({ floating: value.trim().length !== 0 || focused });
@@ -111,8 +111,14 @@ export function CheckWithUrl() {
                     loaded ? setLoaded(false) : !interval.active && interval.start();
                     axios
                         .post(`${API_URL}/analyze`, { imageUrl: value })
-                        .then((response) => setResult(response.data))
-                        .catch((error) => setResult(error.message));
+                        .then((response) => {
+                            setResult(response.data);
+                            onResult?.(response.data);
+                        })
+                        .catch((error) => {
+                            setResult(error.message);
+                            onResult?.(null);
+                        });
                 }}
                 color={loaded ? 'teal' : theme.primaryColor}
             >
