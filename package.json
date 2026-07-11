@@ -16,6 +16,7 @@
     "@mantine/dropzone": "^6.0.22",
     "@mantine/hooks": "^6.0.22",
     "@tabler/icons-react": "^3.44.0",
+    "@vercel/microfrontends": "^2.4.0",
     "axios": "^1.18.1",
     "buffer": "^6.0.3",
     "react": "^19.2.7",

@@ -17,6 +17,17 @@ const socket = io(API_URL, {
 
 const headerLinks = [{ link: '/', label: 'Home' }, { link: '/about', label: 'About US' }];
 
+// When served through the portfolio's microfrontends proxy at
+// bimeshpoudel.com.np/human-anomaly-live-demo, the URL keeps that prefix
+// (it's a rewrite, not a redirect) - react-router needs to know about it or
+// in-app links resolve relative to "/" and land outside the proxied path.
+// Direct access via the standalone frontend-new-inky-zeta.vercel.app URL
+// has no such prefix, so this only applies when it's actually present.
+const MICROFRONTENDS_BASE = '/human-anomaly-live-demo';
+const basename = window.location.pathname.startsWith(MICROFRONTENDS_BASE)
+  ? MICROFRONTENDS_BASE
+  : undefined;
+
 function App() {
   const [colorScheme, setColorScheme] = useLocalStorage({
     key: 'color-scheme',
@@ -28,7 +39,7 @@ function App() {
   return (
     <ColorSchemeProvider colorScheme={colorScheme} toggleColorScheme={toggleColorScheme}>
       <MantineProvider theme={{ colorScheme }} withGlobalStyles withNormalizeCSS>
-        <Router>
+        <Router basename={basename}>
           <div
             className={
               colorScheme === 'dark'
