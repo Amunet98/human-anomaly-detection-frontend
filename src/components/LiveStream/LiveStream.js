@@ -12,6 +12,7 @@ const LiveStream = ({ socket }) => {
   const streamRef = useRef();
   const [usingOwnCamera, setUsingOwnCamera] = useState(false);
   const [details, setDetails] = useState('Not Detected');
+  const [demoFrameSeen, setDemoFrameSeen] = useState(false);
   // 'user' = front camera, 'environment' = back camera. `ideal` (not `exact`)
   // so devices with a single camera (laptops) still match instead of failing.
   const [facingMode, setFacingMode] = useState('user');
@@ -98,6 +99,7 @@ const LiveStream = ({ socket }) => {
   useEffect(() => {
     if (usingOwnCamera || !socket) return;
     const handleFrame = (imageData) => {
+      setDemoFrameSeen(true);
       if (imgRef.current) {
         imgRef.current.src = `data:image/jpeg;base64,${imageData}`;
       }
@@ -137,11 +139,19 @@ const LiveStream = ({ socket }) => {
           )}
         </div>
       ) : (
-        <img
-          ref={imgRef}
-          className="rounded-2xl w-full max-w-3xl mx-auto block aspect-[4/3] object-cover bg-black/20"
-          alt='Live Stream'
-        />
+        <div className="relative w-full max-w-3xl mx-auto">
+          <img
+            ref={imgRef}
+            className="rounded-2xl w-full block aspect-[4/3] object-cover bg-black/20"
+            alt='Live Stream'
+          />
+          {!demoFrameSeen && (
+            <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40 px-6 text-center font-mono text-sm">
+              Demo server is waking up — free hosting naps when idle.
+              The feed should appear within ~60 seconds.
+            </div>
+          )}
+        </div>
       )}
       <div className='text-center px-4 mt-5'>
         <span className='inline-block p-3 rounded-xl font-mono font-bold text-lg text-black bg-yellow-400'>
