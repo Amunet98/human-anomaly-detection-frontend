@@ -36,12 +36,12 @@ export const Teams = () => {
                 <span className=" text-2xl font-bold font-mono mt-11 mb-10">
                     TEAM INFO
                 </span>
-                <div className="flex justify-evenly">
+                <div className="flex flex-col sm:flex-row flex-wrap justify-evenly items-center gap-6">
                     {
                         teamData.map((item, index) => {
                             return (
-                                < div className="mb-10 mr-10 flex justify-between">
-                                    <TeamInfo key={index} avatar={item.avatar} email={item.email} name={item.name} title={item.title} phone={item.phone} github={item.github} />
+                                <div key={index} className="mb-4">
+                                    <TeamInfo avatar={item.avatar} email={item.email} name={item.name} title={item.title} phone={item.phone} github={item.github} />
                                 </div>
                             )
                         })
