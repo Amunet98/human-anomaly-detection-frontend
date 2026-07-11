@@ -43,7 +43,7 @@ function App() {
           <div
             className={
               colorScheme === 'dark'
-                ? 'min-h-screen bg-gray-900 text-gray-50'
+                ? 'min-h-screen bg-[#16171d] text-gray-50'
                 : 'min-h-screen bg-white text-gray-900'
             }
           >
