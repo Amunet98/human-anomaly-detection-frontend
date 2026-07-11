@@ -4,27 +4,11 @@ import { CheckWithUrl } from "../CheckWithUrl/CheckWithUrl"
 import { Divider, useMantineTheme } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { FooterLinks } from '../Footer/Footer';
-import socketIOClient from 'socket.io-client';
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 
 export const Home = ({ socket }) => {
-    const [details, setDetails] = React.useState("Not Detected");
     const theme = useMantineTheme();
     const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
-
-    useEffect(() => {
-      // Use the unified socket passed as a prop
-      if (socket) {
-        socket.on('detected', (data) => {
-          setDetails(data);
-        });
-      }
-
-      // Clean up the listener when the component unmounts
-      return () => {
-        if (socket) socket.off('detected');
-      };
-    }, [socket]);
 
     return (
         <div className='flex flex-col mt-20 justify-center'>
@@ -34,11 +18,6 @@ export const Home = ({ socket }) => {
             <div className='live mt-2 mb-20 flex justify-center bg-slate-700'>
                 {/* Pass the socket prop to LiveStream */}
                 <LiveStream socket={socket} />
-            </div>
-            <div className='text-center px-4'>
-                <span className='inline-block p-3 rounded-xl font-mono font-bold text-lg text-black bg-yellow-400'>
-                    {details}
-                </span>
             </div>
 
             <hr className='m-10' />
