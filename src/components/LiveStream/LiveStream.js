@@ -114,12 +114,15 @@ const LiveStream = ({ socket }) => {
       <canvas ref={canvasRef} style={{ display: 'none' }} />
       {usingOwnCamera ? (
         <div className="relative w-full max-w-3xl mx-auto">
+          {/* Mirror only the on-screen preview for the front camera (like native
+              camera apps); canvas captures read the element's real pixels, so
+              frames sent for detection stay unmirrored. */}
           <video
             ref={videoRef}
             autoPlay
             playsInline
             muted
-            className="rounded-2xl w-full block aspect-[4/3] object-cover bg-black/20"
+            className={`rounded-2xl w-full block aspect-[4/3] object-cover bg-black/20 ${facingMode === 'user' ? 'scale-x-[-1]' : ''}`}
           />
           {hasMultipleCameras && (
             <button
