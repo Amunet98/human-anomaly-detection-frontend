@@ -21,7 +21,6 @@
     "buffer": "^6.0.3",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-json-tree": "^0.20.0",
     "react-router-dom": "^6.30.4",
     "socket.io-client": "^4.8.3"
   },

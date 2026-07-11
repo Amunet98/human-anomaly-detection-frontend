@@ -3,7 +3,6 @@ import { IconUpload, IconPhoto, IconX } from "@tabler/icons-react";
 import { Dropzone, IMAGE_MIME_TYPE } from "@mantine/dropzone";
 import { useState } from "react";
 import axios from "axios";
-import { JSONTree } from "react-json-tree";
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
 
@@ -90,11 +89,11 @@ export function CheckWithUploadOrDrag({ onResult }) {
         {results ? (
           <div>
             <div className=" text-xl font-bold font-mono">Result for Scan</div>
-            {/* <ReactJson className='flex' src={results} theme="brewer" /> */}
-            <div className="m-5">
-              <JSONTree data={results} theme={theme} invertTheme={false} />
+            <div className="m-5 text-lg font-mono">
+              {typeof results === "string"
+                ? results
+                : results.top?.className || "Not Detected"}
             </div>
-            {/* <pre className=' flex mt-4 w-96 h-52' title='Results'>{results}</pre> */}
           </div>
         ) : null}
       </div>
