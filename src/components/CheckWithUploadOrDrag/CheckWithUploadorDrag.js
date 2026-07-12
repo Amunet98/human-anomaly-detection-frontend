@@ -39,7 +39,6 @@ export function CheckWithUploadOrDrag({ onResult }) {
                     onResult?.(null);
                   });
               }}
-              onReject={(files) => console.log("rejected files", files)}
               maxSize={3 * 1024 ** 2}
               accept={IMAGE_MIME_TYPE}
             >

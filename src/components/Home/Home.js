@@ -4,11 +4,22 @@ import { CheckWithUrl } from "../CheckWithUrl/CheckWithUrl"
 import { Divider, useMantineTheme } from '@mantine/core';
 import { useMediaQuery } from '@mantine/hooks';
 import { FooterLinks } from '../Footer/Footer';
-import React from 'react';
+import React, { useEffect, useMemo } from 'react';
+import { io } from 'socket.io-client';
 
-export const Home = ({ socket }) => {
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
+
+export const Home = () => {
     const theme = useMantineTheme();
     const isMobile = useMediaQuery(`(max-width: ${theme.breakpoints.sm})`);
+
+    // Only connect while someone is actually on this page - the backend
+    // counts every open connection as a viewer and (once the shared demo
+    // feed is running) wakes the camera capture service for it, so opening
+    // a socket on /about or /refrence_papers as well would waste that for
+    // no visible feed.
+    const socket = useMemo(() => io(API_URL, { transports: ["websocket"] }), []);
+    useEffect(() => () => socket.disconnect(), [socket]);
 
     return (
         <div className='flex flex-col mt-20 justify-center'>

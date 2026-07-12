@@ -4,16 +4,9 @@ import { HeaderResponsive } from './components/Header/Header';
 import { Home } from "./components/Home/Home";
 import { About } from './components/AboutProject/AboutProject';
 import { ReferencePapers } from './components/ReferencePapers/ReferencePapers';
-import { io } from "socket.io-client";
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { MantineProvider, ColorSchemeProvider } from '@mantine/core';
 import { useLocalStorage } from '@mantine/hooks';
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
-
-const socket = io(API_URL, {
-  transports: ["websocket"]
-});
 
 const headerLinks = [{ link: '/', label: 'home' }, { link: '/about', label: 'about us' }];
 
@@ -55,7 +48,7 @@ function App() {
             </div>
 
             <Routes>
-              <Route path='/' element={<Home socket={socket} />} />
+              <Route path='/' element={<Home />} />
               <Route path='/about' element={<About />} />
               <Route path='/refrence_papers' element={<ReferencePapers />} />
             </Routes>

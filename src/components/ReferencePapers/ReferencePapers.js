@@ -1,5 +1,3 @@
-import { Link } from "react-router-dom"
-
 const refrencePapers = [
     {
         title: "Cloud service-oriented architecture (CSoA) for agriculture through internet of things (IoT) and big data",
@@ -56,13 +54,13 @@ export const ReferencePapers = () => {
                     refrencePapers.map((item, index) => {
                         return (
                             <div className="w-10/12 outline rounded-lg mb-10 p-7 bg-slate-200">
-                                <Link to={item.link}>
+                                <a href={item.link} target="_blank" rel="noopener noreferrer">
                                     <div key={index} className="flex flex-col">
                                         <span className="font-mono mb-3 font-bold text-xl">{item.title}</span>
                                         <span className="font-sans text-blue-800 font-semibold mb-2">{item.link}</span>
                                         <span className="font-serif text-base">{item.intro}</span>
                                     </div>
-                                </Link>
+                                </a>
                             </div>
                         )
                     })
