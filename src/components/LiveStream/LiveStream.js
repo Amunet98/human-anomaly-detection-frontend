@@ -147,8 +147,8 @@ const LiveStream = ({ socket }) => {
           />
           {!demoFrameSeen && (
             <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40 px-6 text-center font-mono text-sm">
-              Demo server is waking up — free hosting naps when idle.
-              The feed should appear within ~60 seconds.
+              Shared live demo is temporarily paused - allow camera access
+              above to try it with your own camera instead.
             </div>
           )}
         </div>
