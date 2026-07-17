@@ -39,6 +39,15 @@ npm run dev
 
 ## Deploying
 
-Static build, deploys well to Vercel: `vercel --prod` (or connect the repo
-in the Vercel dashboard). Set `VITE_API_URL` to the deployed backend's URL
-as a Vercel environment variable.
+Connected to Vercel via the GitHub integration — pushes to `main` build and
+deploy production automatically. `VITE_API_URL` is set to the deployed
+backend's URL as a Vercel environment variable.
+
+In production the app is served *through* the portfolio's domain at
+`/human-anomaly-live-demo` via
+[Vercel Microfrontends](https://vercel.com/docs/microfrontends) — the
+portfolio and this demo deploy independently but share one domain.
+
+> **Note:** the backend only streams the shared demo feed while viewers are
+> connected, and the feed may be paused at times to stay within free-tier
+> hosting limits — the upload/URL image checks work regardless.
