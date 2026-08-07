@@ -11,6 +11,8 @@
     "parity": "node scripts/parity-check.mjs",
     "tracker": "node scripts/tracker-check.mjs",
     "viewport": "node scripts/viewport-check.mjs",
+    "eval": "node scripts/eval-check.mjs",
+    "eval:robust": "node scripts/eval-check.mjs --augment",
     "check": "npm run tracker && npm run viewport"
   },
   "dependencies": {
