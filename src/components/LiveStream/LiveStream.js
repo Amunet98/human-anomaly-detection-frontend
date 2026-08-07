@@ -32,6 +32,10 @@ function normalizeServerDetections(detections = []) {
     y1: d.box[1],
     x2: d.box[2],
     y2: d.box[3],
+    // Carried through to the overlay's skeleton. The server marks occluded
+    // joints with null coordinates rather than omitting them, so the array stays
+    // index-aligned with KEYPOINT_EDGES either way.
+    keypoints: d.keypoints ?? null,
   }));
 }
 

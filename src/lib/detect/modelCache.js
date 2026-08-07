@@ -7,7 +7,13 @@ import { MODEL_BYTES } from './constants.js';
 // every visitor - including the ones who never turn browser detection on. Only
 // the worker imports session.js, so only the worker pays for ORT.
 
-const CACHE_NAME = 'han-model-v1';
+// Bumped when the model file changes. Vite's `?url` import already
+// content-hashes the built filename, so production visitors get a new URL and
+// would miss the old entry anyway - this matters for `vite dev` and
+// `vite preview`, which do not hash, and it evicts the superseded 11.7MB
+// detector rather than leaving it in every returning visitor's storage.
+// v2 = COCO yolov8n-pose (replaced the custom 3-class fall/sit/stand detector).
+const CACHE_NAME = 'han-model-v2';
 
 async function openCache() {
   // `caches` is undefined on insecure origins and throws in some private modes.

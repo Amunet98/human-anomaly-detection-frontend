@@ -2,8 +2,11 @@ import {
   CLASS_NAMES,
   DEFAULT_CONF_THRESHOLD,
   IOU_THRESHOLD,
+  KEYPOINT_NAMES,
+  KP_CONF_THRESHOLD,
   MIN_BOX_AREA_RATIO,
 } from './constants.js';
+import { classifyPosture } from './posture.js';
 
 export function iou(a, b) {
   const x1 = Math.max(a.x1, b.x1);
@@ -112,4 +115,79 @@ export function decodeYolov8(output, lb, confThreshold = DEFAULT_CONF_THRESHOLD)
     x2: b.x2,
     y2: b.y2,
   }));
+}
+
+// Decodes the pose model's raw export output and derives a posture per person.
+// Port of inference.js's decodePose().
+//
+// Layout is [1, 5 + numKeypoints*3, numAnchors], channel-major, same as the
+// detector's but with a different channel budget: cx, cy, w, h, then ONE person
+// confidence (the model has a single class), then x, y, confidence per keypoint.
+// numKeypoints comes from the tensor's own dims so a 17-point COCO model and any
+// other pose head decode through the same path.
+//
+// Keypoints arrive in the same 640-canvas coordinates as the box, so they undo
+// the letterbox with exactly the same scale/pad arithmetic - no separate mapping
+// and nothing new in letterbox.js.
+export function decodePose(output, lb, confThreshold = DEFAULT_CONF_THRESHOLD) {
+  const data = output.data;
+  const [, channels, numAnchors] = output.dims;
+  const numKeypoints = (channels - 5) / 3;
+  const { scale, padLeft, padTop } = lb;
+
+  const boxes = [];
+  for (let a = 0; a < numAnchors; a++) {
+    const personConf = data[4 * numAnchors + a];
+    if (personConf < confThreshold) continue;
+
+    const cx = data[0 * numAnchors + a];
+    const cy = data[1 * numAnchors + a];
+    const w = data[2 * numAnchors + a];
+    const h = data[3 * numAnchors + a];
+
+    const keypoints = [];
+    for (let k = 0; k < numKeypoints; k++) {
+      const base = (5 + k * 3) * numAnchors + a;
+      const confidence = data[base + 2 * numAnchors];
+      keypoints.push({
+        name: KEYPOINT_NAMES[k] ?? `kp_${k}`,
+        x: (data[base] - padLeft) / scale,
+        y: (data[base + numAnchors] - padTop) / scale,
+        confidence,
+        visible: confidence >= KP_CONF_THRESHOLD,
+      });
+    }
+
+    boxes.push({
+      x1: (cx - w / 2 - padLeft) / scale,
+      y1: (cy - h / 2 - padTop) / scale,
+      x2: (cx + w / 2 - padLeft) / scale,
+      y2: (cy + h / 2 - padTop) / scale,
+      score: personConf,
+      // Single-class model, so every box is class 0 and NMS is inherently
+      // class-agnostic - the distinction that mattered for the old 3-class head
+      // no longer exists here.
+      classId: 0,
+      keypoints,
+    });
+  }
+
+  return filterTinyBoxes(nms(boxes)).map((b) => {
+    const posture = classifyPosture(b.keypoints, b, b.score);
+    return {
+      classId: CLASS_NAMES.indexOf(posture.className),
+      className: posture.className,
+      confidence: posture.confidence,
+      // Kept for the overlay and for debugging why a posture was chosen; the
+      // tracker ignores them.
+      keypoints: b.keypoints,
+      personConfidence: b.score,
+      tier: posture.tier,
+      reason: posture.reason,
+      x1: b.x1,
+      y1: b.y1,
+      x2: b.x2,
+      y2: b.y2,
+    };
+  });
 }

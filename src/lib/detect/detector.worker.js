@@ -14,7 +14,7 @@ import { ort, createSession, warmUp } from './session.js';
 import { loadModelBytes } from './modelCache.js';
 import { INPUT_SIZE } from './constants.js';
 import { computeLetterbox, drawLetterboxed, imageDataToCHW } from './letterbox.js';
-import { decodeYolov8 } from './postprocess.js';
+import { decodePose } from './postprocess.js';
 
 let session = null;
 let confThreshold;
@@ -85,7 +85,7 @@ async function onFrame({ bitmap, sourceW, sourceH, seq, t }) {
   const run = performance.now() - runStarted;
 
   const postStarted = performance.now();
-  const detections = decodeYolov8(output, lb, confThreshold);
+  const detections = decodePose(output, lb, confThreshold);
   const post = performance.now() - postStarted;
 
   self.postMessage({

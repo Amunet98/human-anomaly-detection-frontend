@@ -80,3 +80,14 @@ export function sizeOverlayCanvas(canvas, hostEl) {
   ctx.setTransform(w / rect.width, 0, 0, h / rect.height, 0, 0);
   return { ctx, cssW: rect.width, cssH: rect.height };
 }
+
+// Maps a single source-space point (a pose keypoint) into CSS pixels. Same
+// transform sourceBoxToCss applies to a box, minus the corner-ordering fixup a
+// mirrored box needs - a point has no left or right edge to swap.
+export function sourcePointToCss(point, map, { mirror = false, displayW = 0 } = {}) {
+  const x = point.x * map.scale + map.ox;
+  return {
+    x: mirror ? displayW - x : x,
+    y: point.y * map.scale + map.oy,
+  };
+}

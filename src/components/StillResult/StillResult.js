@@ -27,6 +27,10 @@ export function StillResult({ src, detections, loading, error }) {
         fallConfirmed: false,
         opacity: 1,
         box: { x1: d.box[0], y1: d.box[1], x2: d.box[2], y2: d.box[3] },
+        // The server sends occluded joints as {x: null, y: null}; the overlay
+        // already skips any edge with a missing endpoint, so they pass straight
+        // through.
+        keypoints: d.keypoints ?? null,
       })),
     [detections],
   );

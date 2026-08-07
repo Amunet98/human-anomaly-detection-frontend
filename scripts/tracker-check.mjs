@@ -149,25 +149,51 @@ const FPS = 5, STEP = 1000 / FPS;
   let now = 0, tr;
   for (let i = 0; i < 20; i++) {
     now += STEP;
-    // 0.46 conf, and a TALL box so the lying-aspect bonus does not apply
     tr = t.update([det('fall', 0.46, STAND)], now)[0];
   }
   check(tr.state === 'fall', 'state reports what the model consistently says', `state=${tr.state}`);
   check(!tr.fallConfirmed, 'but does not confirm on weak evidence');
 }
 
-// --- 9. aspect bonus rescues a borderline fall with a lying box ---
+// --- 9. box shape no longer sways the vote; the classifier's confidence does ---
 {
-  console.log('\n=== 9. borderline fall, lying box ===');
+  // The tracker used to add ASPECT_BONUS to a fall whose box was wider than
+  // tall, which pulled a 0.50 reading over the 0.55 confirm bar. That is gone:
+  // posture.js measures torso orientation directly and already folds aspect into
+  // the confidence it reports, so re-applying it here counted one weak signal
+  // twice. The tracker now takes the classifier's number at face value.
+  console.log('\n=== 9. box shape does not change the vote ===');
+  const t1 = new Tracker();
+  const t2 = new Tracker();
+  let now = 0, lying, standing;
+  for (let i = 0; i < 20; i++) {
+    now += STEP;
+    lying = t1.update([det('fall', 0.5, LYING)], now)[0];
+    standing = t2.update([det('fall', 0.5, STAND)], now)[0];
+  }
+  check(
+    lying.confidence === standing.confidence,
+    'a wide box and a tall box at the same confidence vote identically',
+    `lying=${lying.confidence.toFixed(3)} tall=${standing.confidence.toFixed(3)}`,
+  );
+  check(!lying.fallConfirmed, '0.50 stays under the 0.55 enter bar regardless of box shape');
+}
+
+// --- 10. a well-evidenced fall still confirms ---
+{
+  // The counterpart to 9: removing the bonus must not have made confirmation
+  // unreachable. A fall the classifier is actually confident about - which is
+  // what a clear torso angle produces - confirms inside the 1200ms window.
+  console.log('\n=== 10. well-evidenced fall confirms ===');
   const t = new Tracker();
   let now = 0, tr;
-  for (let i = 0; i < 20; i++) { now += STEP; tr = t.update([det('fall', 0.5, LYING)], now)[0]; }
-  check(tr.fallConfirmed, 'aspect corroboration carries 0.50 over the 0.55 bar');
+  for (let i = 0; i < 20; i++) { now += STEP; tr = t.update([det('fall', 0.78, LYING)], now)[0]; }
+  check(tr.fallConfirmed, 'a 0.78 fall confirms', `conf=${tr.confidence.toFixed(2)}`);
 }
 
 // --- 10. confirmation does not blink off when confidence sags ---
 {
-  console.log('\n=== 10. confirmed fall, confidence sags to 0.40 ===');
+  console.log('\n=== 11. confirmed fall, confidence sags to 0.40 ===');
   const t = new Tracker();
   let now = 0, tr;
   for (let i = 0; i < 15; i++) { now += STEP; tr = t.update([det('fall', 0.9, LYING)], now)[0]; }

@@ -6,10 +6,38 @@
 
 export const INPUT_SIZE = 640;
 
-// Class order is the model's, not a preference: best.onnx carries
-// names = {0: 'fall', 1: 'sit', 2: 'stand'} in its ultralytics metadata.
-// Matches CLASS_NAMES in the backend's render.yaml / .env.
+// The posture vocabulary the whole app speaks: DetectionOverlay's CLASS_COLORS,
+// the tracker's votes, StillResult's badges, the backend's CLASS_NAMES env.
+//
+// Note this is NO LONGER the model's own class list. best.onnx is now
+// COCO-pretrained yolov8n-pose, which detects a single class (`person`) and
+// 17 keypoints; the three postures are derived from keypoint geometry in
+// posture.js. The old 3-class detector put these labels in its own head, and
+// learned scene shortcuts doing it - see MODEL_CARD.md.
 export const CLASS_NAMES = ['fall', 'sit', 'stand'];
+
+// COCO keypoint order, as emitted by ultralytics' pose head.
+export const KEYPOINT_NAMES = [
+  'nose', 'leftEye', 'rightEye', 'leftEar', 'rightEar',
+  'leftShoulder', 'rightShoulder', 'leftElbow', 'rightElbow',
+  'leftWrist', 'rightWrist', 'leftHip', 'rightHip',
+  'leftKnee', 'rightKnee', 'leftAnkle', 'rightAnkle',
+];
+
+// Joint pairs for the skeleton overlay. An edge is drawn only when *both*
+// endpoints clear KP_CONF_THRESHOLD, so an occluded limb leaves a gap rather
+// than a confident-looking line through the furniture behind it.
+export const KEYPOINT_EDGES = [
+  [5, 6], [5, 7], [7, 9], [6, 8], [8, 10],
+  [5, 11], [6, 12], [11, 12],
+  [11, 13], [13, 15], [12, 14], [14, 16],
+  [0, 5], [0, 6],
+];
+
+// Below this a keypoint is treated as missing rather than trusted. The pose
+// head always emits all 17 coordinates; the confidence channel is the only
+// thing distinguishing a located joint from a guessed one.
+export const KP_CONF_THRESHOLD = 0.5;
 
 // Ultralytics letterbox padding.
 export const PAD_RGB = [114, 114, 114];
@@ -39,4 +67,4 @@ export const MIN_BOX_AREA_RATIO = 0.15;
 // Byte length of src/model/best.onnx. Needed because Vercel serves the model
 // brotli-compressed and therefore *without* a Content-Length, so a download
 // progress bar has nothing else to divide by. Update on retrain.
-export const MODEL_BYTES = 12266856;
+export const MODEL_BYTES = 13514574;

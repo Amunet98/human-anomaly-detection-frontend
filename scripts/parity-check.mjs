@@ -38,7 +38,7 @@ const sharp = require('sharp');
 const { analyzeBuffer } = require(path.join(BACKEND, 'inference'));
 
 const { computeLetterbox, imageDataToCHW } = await import(`${FRONTEND}/src/lib/detect/letterbox.js`);
-const { decodeYolov8 } = await import(`${FRONTEND}/src/lib/detect/postprocess.js`);
+const { decodePose } = await import(`${FRONTEND}/src/lib/detect/postprocess.js`);
 const { INPUT_SIZE } = await import(`${FRONTEND}/src/lib/detect/constants.js`);
 
 const session = await ort.InferenceSession.create(path.join(BACKEND, 'best.onnx'), {
@@ -134,7 +134,7 @@ for (const file of fixtures) {
   ).output0;
 
   const server = (await analyzeBuffer(buf)).detections;
-  const browser = decodeYolov8(out, lb);
+  const browser = decodePose(out, lb);
 
   check(
     server.length === browser.length,
@@ -154,10 +154,30 @@ for (const file of fixtures) {
     );
     // Tolerances exist only because the server rounds boxes to whole pixels
     // and confidence to 3dp, while we keep floats for the box smoother.
+    // Keypoints are the new half of the payload and the input the posture
+    // classifier actually reads, so a silent divergence there would show up as
+    // a wrong label rather than a wrong box. Compare every visible joint.
+    let dKp = 0;
+    let kpMismatch = 0;
+    for (let k = 0; k < b.keypoints.length; k++) {
+      const sk = s.keypoints[k];
+      const bk = b.keypoints[k];
+      if (sk.x === null || !bk.visible) {
+        if ((sk.x === null) !== !bk.visible) kpMismatch++;
+        continue;
+      }
+      dKp = Math.max(dKp, Math.abs(sk.x - bk.x), Math.abs(sk.y - bk.y));
+    }
+
     check(
-      s.className === b.className && dBox <= 1 && dConf <= 0.001,
-      `detection[${i}] ${s.className}`,
-      `dBox=${dBox.toFixed(3)}px dConf=${dConf.toFixed(4)}`,
+      s.className === b.className &&
+        dBox <= 1 &&
+        dConf <= 0.001 &&
+        dKp <= 1 &&
+        kpMismatch === 0 &&
+        s.tier === b.tier,
+      `detection[${i}] ${s.className} (tier ${s.tier})`,
+      `dBox=${dBox.toFixed(3)}px dConf=${dConf.toFixed(4)} dKp=${dKp.toFixed(3)}px kpVisMismatch=${kpMismatch}`,
     );
   }
 }

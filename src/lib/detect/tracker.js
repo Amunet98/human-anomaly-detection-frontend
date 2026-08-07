@@ -35,12 +35,13 @@ const FALL_EXIT_CONF = 0.35;
 // something up reads as 'fall' for a few frames, but not for over a second.
 const FALL_CONFIRM_MS = 1200;
 
-// A lying body's box is wider than it is tall. Used only as a soft nudge to the
-// confidence, never as a gate - camera angle breaks the assumption (a fall
-// straight towards or away from the lens stays narrow), so it must not be able
-// to veto a fall on its own.
-const LYING_ASPECT = 1.0;
-const ASPECT_BONUS = 0.08;
+// Box aspect ratio used to be nudged into the fall evidence here, back when the
+// detector classified posture from appearance and had no direct read on body
+// orientation. posture.js now measures the shoulder-to-hip angle itself and
+// already folds aspect into that decision (FALL_ASPECT), so applying it again
+// at this layer would count the same weak signal twice - once inside the
+// classifier's confidence and once on top of it. Removed rather than retuned:
+// the signal is not gone, it moved to where the geometry is.
 
 // Track lifecycle, in milliseconds.
 const FADE_IN_MS = 120;
@@ -125,6 +126,10 @@ function newTrack(id, det, now) {
     // What the model said about this exact frame.
     rawClass: det.className,
     rawConfidence: det.confidence,
+    // Straight passthrough for the skeleton overlay. Deliberately not voted on
+    // or smoothed: joints are per-frame evidence, and averaging them across a
+    // window would draw a limb where the body never was.
+    keypoints: det.keypoints ?? null,
     // What the tracker concluded over the vote window.
     state: det.className,
     confidence: det.confidence,
@@ -142,17 +147,14 @@ function observe(track, det, now) {
   track.lastSeen = now;
   track.rawClass = det.className;
   track.rawConfidence = det.confidence;
+  track.keypoints = det.keypoints ?? null;
 
-  // Aspect-ratio corroboration, applied to the fall evidence only.
-  const width = det.x2 - det.x1;
-  const height = det.y2 - det.y1;
-  const lying = height > 0 && width / height >= LYING_ASPECT;
-  const weight =
-    det.className === 'fall' && lying
-      ? Math.min(1, det.confidence + ASPECT_BONUS)
-      : det.confidence;
-
-  track.votes.push({ className: det.className, weight });
+  // The classifier's confidence already encodes how much evidence supported the
+  // call - how far the torso cleared the fall boundary, and how much of the body
+  // was visible at all (its tier discount). Using it directly as the vote weight
+  // means a tier-C guess from a waist-up frame cannot outvote a clean full-body
+  // read in the same window.
+  track.votes.push({ className: det.className, weight: det.confidence });
   if (track.votes.length > VOTE_WINDOW) track.votes.shift();
 
   // Confidence-weighted majority over the window: a couple of low-confidence
