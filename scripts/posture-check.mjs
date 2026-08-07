@@ -119,6 +119,50 @@ console.log('\n=== sit vs stand ===');
   check(r.className === 'sit', 'knees above hips -> sit', `${r.className} — ${r.reason}`);
 }
 
+console.log('\n=== seated facing camera, legs extended (thigh foreshortening) ===');
+{
+  // Real keypoints from scripts/eval-fixtures/bench-sit-frontal.jpg - a woman
+  // seated on a bench with her legs stretched forward toward the lens. This
+  // shipped as `stand 63%` before thigh/shin foreshortening was added, because
+  // both of the other leg features genuinely read as standing here: her knees
+  // are well below her hips and her legs are almost straight.
+  const kps = skeleton({
+    leftShoulder: [814, 904], rightShoulder: [621, 924],
+    leftHip: [726, 1197], rightHip: [601, 1200],
+    leftKnee: [659, 1371], rightKnee: [568, 1394],
+    leftAnkle: [604, 1692], rightAnkle: [538, 1721],
+  });
+  const box = { x1: 439, y1: 687, x2: 873, y2: 1896 };
+  const f = postureFeatures(kps, box);
+  const r = classifyPosture(kps, box, 0.894);
+
+  check(f.kneeDrop > 0.5, 'kneeDrop alone would say STAND', `kneeDrop=${f.kneeDrop.toFixed(2)}`);
+  check(f.kneeAngle > 150, 'kneeAngle alone would say STAND', `kneeAngle=${f.kneeAngle.toFixed(0)}deg`);
+  check(f.thighShinRatio < 0.75, 'but the thigh is foreshortened', `thigh/shin=${f.thighShinRatio.toFixed(2)}`);
+  check(r.className === 'sit', 'classified as SIT', `${r.className} ${r.confidence.toFixed(2)} — ${r.reason}`);
+}
+{
+  // The statue seated beside her, same photo - even more foreshortened.
+  const kps = skeleton({
+    leftShoulder: [1117, 1032], rightShoulder: [880, 1039],
+    leftHip: [1071, 1272], rightHip: [913, 1276],
+    leftKnee: [1088, 1358], rightKnee: [900, 1360],
+    leftAnkle: [1069, 1542], rightAnkle: [927, 1536],
+  });
+  const r = classifyPosture(kps, { x1: 802, y1: 771, x2: 1181, y2: 1663 }, 0.913);
+  check(r.className === 'sit', 'the second seated subject is SIT too', `${r.className} — ${r.reason}`);
+}
+{
+  // Real keypoints from a standing background pedestrian in street-fall.jpg.
+  // Guards the other direction: the new rule must not drag standers into sit.
+  // Measured standers cluster at thigh/shin 1.00-1.11.
+  const kps = upright();
+  const f = postureFeatures(kps, boxAround(kps));
+  const r = classifyPosture(kps, boxAround(kps), 0.9);
+  check(f.thighShinRatio >= 0.75, 'an upright figure is not foreshortened', `thigh/shin=${f.thighShinRatio.toFixed(2)}`);
+  check(r.className === 'stand', 'still classified as STAND', `${r.className} — ${r.reason}`);
+}
+
 console.log('\n=== occlusion tiers ===');
 {
   const kps = upright();

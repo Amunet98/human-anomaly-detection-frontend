@@ -1,5 +1,6 @@
 [
   { "file": "bench-sit.jpg",      "expected": "sit",   "note": "park bench, reading, legs occluded by paper and bench" },
+  { "file": "bench-sit-frontal.jpg", "expected": "sit", "note": "REGRESSION CASE: seated facing camera, legs stretched forward. kneeDrop 0.64 and kneeAngle 172deg both read as stand; only thigh/shin foreshortening (0.58) catches it. Two subjects, both seated - a person and a statue" },
   { "file": "street-fall.jpg",    "expected": "fall",  "note": "mid-air horizontal dive onto pavement" },
   { "file": "balcony-stand.jpg",  "expected": "stand", "note": "upright, arms crossed, legs cropped below knee" },
   { "file": "legacy-fall.jpg",    "expected": "fall",  "note": "mid-air backward fall against sky, no ground reference" },
