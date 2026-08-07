@@ -51,3 +51,35 @@ portfolio and this demo deploy independently but share one domain.
 > **Note:** the backend only streams the shared demo feed while viewers are
 > connected, and the feed may be paused at times to stay within free-tier
 > hosting limits — the upload/URL image checks work regardless.
+
+## Deployment headers
+
+`vercel.json` is not self-explanatory and JSON has no comments, so the reasoning
+lives here.
+
+**`Cache-Control: immutable` on `/vc-ap-373432/*`.** That path is the asset
+prefix `@vercel/microfrontends` assigns this project, and everything Vite emits
+into it is content-hashed — JS, CSS, the onnxruntime `.wasm`, and `best.onnx`.
+A rebuild or a retrain changes the hash and therefore the URL, so nothing can go
+stale. Without this, Vercel serves `max-age=0, must-revalidate` and every page
+load pays a revalidation round-trip, which matters most for the ~12 MB model.
+
+Note this is also why assets must be *imported* (`import url from './x?url'`)
+rather than dropped in `public/`. Files at the public root are unreachable when
+this app is proxied under the portfolio domain — only `/human-anomaly-live-demo`
+and `/vc-ap-373432/*` route here.
+
+**Security headers duplicated from the portfolio.** Under Vercel Microfrontends
+the child project answers its own requests, so the portfolio's headers never
+applied to `bimeshpoudel.com.np/human-anomaly-live-demo` — verified with `curl`:
+the demo page came back with no HSTS and no `X-Frame-Options` while the parent's
+own pages had both. They have to be declared on this side.
+
+**No Content-Security-Policy yet.** It will need `'wasm-unsafe-eval'`, because
+onnxruntime-web compiles its WebAssembly at runtime and a CSP without it blocks
+instantiation outright. It is not set until it has been exercised in a real
+browser: a wrong CSP takes the demo down silently.
+
+**Do not use `"//"` keys as comments in `vercel.json`.** Vercel validates the
+file against a strict schema and rejects unknown properties, and the deployment
+fails *before* the build with no build logs to explain it.

@@ -2,14 +2,12 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "headers": [
     {
-      "//": "Everything Vite emits under the microfrontend asset prefix is content-hashed (JS, CSS, and - once client-side inference lands - the ORT .wasm and best.onnx), so it can be cached forever: a rebuild or a retrain changes the hash and therefore the URL. Without this, Vercel serves its default `max-age=0, must-revalidate` and every page load pays a revalidation round-trip.",
       "source": "/vc-ap-373432/(.*)",
       "headers": [
         { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
       ]
     },
     {
-      "//": "This project is served both standalone and proxied at bimeshpoudel.com.np/human-anomaly-live-demo. Under Vercel Microfrontends the child answers its own requests, so the portfolio's security headers do NOT apply here - they have to be declared again on this side. (A Content-Security-Policy belongs here too, and will need 'wasm-unsafe-eval' for onnxruntime-web; it is deliberately not set yet because it has not been exercised in a browser, and a wrong CSP takes the whole demo down silently.)",
       "source": "/(.*)",
       "headers": [
         { "key": "X-Content-Type-Options", "value": "nosniff" },
