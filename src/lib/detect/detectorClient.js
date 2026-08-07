@@ -1,6 +1,8 @@
 import modelUrl from '../../model/best.onnx?url';
 import { DEFAULT_CONF_THRESHOLD } from './constants.js';
 
+export { modelUrl };
+
 // Main-thread handle to the detection worker.
 //
 // Exposes a strict one-in-flight contract: submit() is a no-op unless the

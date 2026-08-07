@@ -1,5 +1,5 @@
 import * as ort from 'onnxruntime-web';
-import { INPUT_SIZE, MODEL_BYTES } from './constants.js';
+import { INPUT_SIZE } from './constants.js';
 
 // The default onnxruntime-web entry point is the JSEP build: WebGPU, WebNN and
 // the WASM CPU backend in a single artifact. Deliberately not
@@ -45,72 +45,6 @@ export async function pickExecutionProviders() {
     }
   }
   return { providers: ['wasm'], ep: 'wasm' };
-}
-
-// Streams the model with progress, caching it so a second visit doesn't
-// re-download 12MB.
-export async function loadModelBytes(url, onProgress = () => {}) {
-  const cache = await openCache();
-  const cached = cache && (await cache.match(url).catch(() => null));
-  if (cached) {
-    onProgress(1);
-    return new Uint8Array(await cached.arrayBuffer());
-  }
-
-  const res = await fetch(url, { credentials: 'same-origin' });
-  if (!res.ok) throw new Error(`Model request failed (HTTP ${res.status})`);
-  // vercel.json rewrites everything unmatched to /index.html, so a wrong model
-  // path returns 200 text/html rather than 404, and ORT dies deep inside
-  // WebAssembly with "expected magic word 00 61 73 6d, found 3c 21 44 4f".
-  // Catch it here where the message can say something useful.
-  if ((res.headers.get('content-type') || '').includes('text/html')) {
-    throw new Error('Model URL fell through to the SPA rewrite - got HTML, not ONNX');
-  }
-
-  // Vercel serves this brotli-compressed and omits Content-Length when it does,
-  // and the reader yields *decompressed* bytes - so dividing by the header
-  // would sail past 100%. Only trust it on an unencoded response.
-  const declared = Number(res.headers.get('content-length')) || 0;
-  const total = declared && !res.headers.get('content-encoding') ? declared : MODEL_BYTES;
-
-  const reader = res.body.getReader();
-  const chunks = [];
-  let received = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    received += value.length;
-    onProgress(Math.min(received / total, 0.999));
-  }
-
-  const bytes = new Uint8Array(received);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.length;
-  }
-  onProgress(1);
-
-  if (bytes[0] === 0x3c) throw new Error('Model URL returned HTML, not ONNX');
-
-  // Best-effort: quota limits and private-browsing modes make this fail, and
-  // that's fine - it only costs a re-download.
-  cache?.put(url, new Response(bytes.slice(), {
-    headers: { 'content-type': 'application/octet-stream' },
-  })).catch(() => {});
-
-  return bytes;
-}
-
-async function openCache() {
-  // `caches` is undefined on insecure origins and throws in some private modes.
-  if (typeof caches === 'undefined') return null;
-  try {
-    return await caches.open('han-model-v1');
-  } catch {
-    return null;
-  }
 }
 
 export async function createSession(modelBytes) {

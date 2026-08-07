@@ -6,8 +6,7 @@ import { useMediaQuery } from '@mantine/hooks';
 import { FooterLinks } from '../Footer/Footer';
 import React, { useEffect, useMemo } from 'react';
 import { io } from 'socket.io-client';
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
+import { API_URL } from '../../lib/api';
 
 export const Home = () => {
     const theme = useMantineTheme();
@@ -28,10 +27,9 @@ export const Home = () => {
             </div>
             <div className='mb-1 text-center text-2xl font-bold'>Watching for falls, live</div>
             <div className='mb-5 text-center text-sm opacity-60 px-4'>
-                YOLOv8 running server-side against the stream below — your camera if you allow it, the shared demo feed if not.
+                YOLOv8 with IoU tracking and temporal voting. Run it server-side, or load the model into this tab and run it in real time.
             </div>
-            <div className='live mt-2 mb-20 flex justify-center'>
-                {/* Pass the socket prop to LiveStream */}
+            <div className='live mt-2 mb-20'>
                 <LiveStream socket={socket} />
             </div>
 

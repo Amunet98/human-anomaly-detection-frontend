@@ -10,7 +10,8 @@
 // it is documented as incompatible with the WebGPU execution provider and
 // leaves preprocessing on the main thread.
 
-import { ort, loadModelBytes, createSession, warmUp } from './session.js';
+import { ort, createSession, warmUp } from './session.js';
+import { loadModelBytes } from './modelCache.js';
 import { INPUT_SIZE } from './constants.js';
 import { computeLetterbox, drawLetterboxed, imageDataToCHW } from './letterbox.js';
 import { decodeYolov8 } from './postprocess.js';

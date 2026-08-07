@@ -1,10 +1,8 @@
 import { useState } from 'react';
-import { TextInput, createStyles, Button, Progress, rem } from '@mantine/core';
-import { useInterval } from '@mantine/hooks';
+import { TextInput, createStyles, Button, rem } from '@mantine/core';
 import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8081";
-
+import { API_URL } from '../../lib/api';
+import { StillResult } from '../StillResult/StillResult';
 
 const useStyles = createStyles((theme, { floating }) => ({
     root: {
@@ -47,47 +45,48 @@ const useStyles = createStyles((theme, { floating }) => ({
         transition: 'background-color 150ms ease',
     },
 
-    progress: {
-        ...theme.fn.cover(-1),
-        height: 'auto',
-        backgroundColor: 'transparent',
-        zIndex: 0,
-    },
-
     labelButton: {
         position: 'relative',
         zIndex: 1,
     },
 }));
 
-
-
 export function CheckWithUrl({ onResult }) {
     const [focused, setFocused] = useState(false);
     const [value, setValue] = useState('');
-    const { classes, theme } = useStyles({ floating: value.trim().length !== 0 || focused });
+    const { classes } = useStyles({ floating: value.trim().length !== 0 || focused });
 
-    const [progress, setProgress] = useState(0);
-    const [loaded, setLoaded] = useState(false);
-    const [results, setResult] = useState();
+    const [preview, setPreview] = useState(null);
+    const [detections, setDetections] = useState(null);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
-
-    const interval = useInterval(
-        () =>
-            setProgress((current) => {
-                if (current < 100) {
-                    return current + 1;
-                }
-
-                interval.stop();
-                setLoaded(true);
-                return 0;
-            }),
-        20
-    );
+    const analyse = async () => {
+        const url = value.trim();
+        if (!url) return;
+        // The backend fetches the URL itself (with SSRF guards); the browser
+        // loads it directly for the preview. If the host blocks hotlinking the
+        // preview may fail while the analysis still succeeds - the boxes just
+        // have nothing to sit on, which is why the chips below list the
+        // detections in text too.
+        setPreview(url);
+        setDetections(null);
+        setError(null);
+        setLoading(true);
+        try {
+            const response = await axios.post(`${API_URL}/analyze`, { imageUrl: url });
+            setDetections(response.data.detections || []);
+            onResult?.(response.data);
+        } catch (err) {
+            setError(err.response?.data?.error || err.message);
+            onResult?.(null);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     return (
-        <div>
+        <div className='w-full max-w-md'>
             <span className='text-center text-lg font-mono font-medium'>
                 Test using Url
             </span>
@@ -100,54 +99,21 @@ export function CheckWithUrl({ onResult }) {
                 onChange={(event) => setValue(event.currentTarget.value)}
                 onFocus={() => setFocused(true)}
                 onBlur={() => setFocused(false)}
+                onKeyDown={(event) => event.key === 'Enter' && analyse()}
                 mt="md"
                 autoComplete="nope"
             />
             <Button
                 fullWidth
                 className="bg-green-500 hover:bg-green-500 text-gray-50 mt-2"
-                onClick={async () => {
-                    loaded ? setLoaded(false) : !interval.active && interval.start();
-                    axios
-                        .post(`${API_URL}/analyze`, { imageUrl: value })
-                        .then((response) => {
-                            setResult(response.data);
-                            onResult?.(response.data);
-                        })
-                        .catch((error) => {
-                            setResult(error.message);
-                            onResult?.(null);
-                        });
-                }}
-                color={loaded ? 'teal' : theme.primaryColor}
+                onClick={analyse}
+                loading={loading}
+                disabled={!value.trim()}
             >
-                {/* <div className={classes.labelButton}>
-                    {progress !== 0 ? 'Uploading files' : loaded ? 'Files uploaded' : 'Upload files'}
-                </div>
-                {progress !== 0 && (
-                    <Progress
-                        value={progress}
-                        className={classes.progress}
-                        color={theme.fn.rgba(theme.colors[theme.primaryColor][2], 0.35)}
-                        radius="sm"
-                    /> */}
-                {/* )} */}
                 Check
             </Button>
 
-            <div className='mt-10 w-full max-w-96 h-52 overflow-auto flex-wrap'>
-                {results ?
-                    (<div>
-                        <div className=' text-xl font-bold font-mono'>
-                            Result for Scan
-                        </div>
-                        <div className='p-1 text-lg font-mono'>
-                            {typeof results === 'string'
-                                ? results
-                                : results.top?.className || 'Not Detected'}
-                        </div>
-                    </div>) : null}
-            </div>
+            <StillResult src={preview} detections={detections} loading={loading} error={error} />
         </div>
     );
 }

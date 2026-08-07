@@ -9,7 +9,9 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "parity": "node scripts/parity-check.mjs",
-    "tracker": "node scripts/tracker-check.mjs"
+    "tracker": "node scripts/tracker-check.mjs",
+    "viewport": "node scripts/viewport-check.mjs",
+    "check": "npm run tracker && npm run viewport"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
