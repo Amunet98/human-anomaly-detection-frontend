@@ -1,4 +1,9 @@
-import { CLASS_NAMES, DEFAULT_CONF_THRESHOLD, IOU_THRESHOLD } from './constants.js';
+import {
+  CLASS_NAMES,
+  DEFAULT_CONF_THRESHOLD,
+  IOU_THRESHOLD,
+  MIN_BOX_AREA_RATIO,
+} from './constants.js';
 
 export function iou(a, b) {
   const x1 = Math.max(a.x1, b.x1);
@@ -11,18 +16,44 @@ export function iou(a, b) {
   return inter / (areaA + areaB - inter);
 }
 
-// Greedy, class-aware NMS - a box is suppressed only by a higher-scoring box of
-// the *same* class. Structured identically to the server's inference.js:105-113
-// rather than the more usual per-class-partition form, so the two stay
-// diff-able even though they'd produce the same result.
+// Greedy, class-AGNOSTIC NMS - a box is suppressed by any higher-scoring box it
+// overlaps, regardless of class. Structured identically to the server's nms() in
+// inference.js so the two stay diff-able.
+//
+// Class-agnostic is not a tuning choice here, it's forced by the label set:
+// fall/sit/stand are mutually exclusive *postures of one person*, not different
+// objects that can legitimately coexist in the same place. Under the previous
+// class-aware rule the runner-up posture survived on the same box, so a standing
+// subject rendered as both `stand 0.72` and `sit 0.44` at IoU ~0.99 - two labels
+// stacked on one person, which is always wrong. Restore the classId guard only
+// if the model is ever retrained on classes that can genuinely overlap.
 export function nms(boxes) {
   const sorted = [...boxes].sort((a, b) => b.score - a.score);
   const kept = [];
   for (const box of sorted) {
-    if (kept.some((k) => k.classId === box.classId && iou(k, box) > IOU_THRESHOLD)) continue;
+    if (kept.some((k) => iou(k, box) > IOU_THRESHOLD)) continue;
     kept.push(box);
   }
   return kept;
+}
+
+// Drops boxes that are tiny relative to the largest surviving box in the same
+// frame. Runs after NMS, on the survivors, so a cluster of overlapping fragments
+// has already collapsed to one before anything is measured.
+//
+// This is the fix for sub-limb false positives: the model emits a `stand 0.43`
+// box on a subject's boot, which NMS cannot touch (it barely overlaps the person
+// box - only ~32% of the boot box is inside it, so containment suppression
+// wouldn't catch it either) but which is 3.1% of the person box's area.
+//
+// The largest box is compared against itself and so is always kept - a lone
+// distant person is never self-filtered.
+export function filterTinyBoxes(boxes) {
+  if (boxes.length < 2) return boxes;
+  const area = (b) => Math.max(0, b.x2 - b.x1) * Math.max(0, b.y2 - b.y1);
+  const maxArea = Math.max(...boxes.map(area));
+  if (maxArea <= 0) return boxes;
+  return boxes.filter((b) => area(b) >= MIN_BOX_AREA_RATIO * maxArea);
 }
 
 // Decodes YOLOv8's raw export output and maps boxes back to source-image pixels.
@@ -72,7 +103,7 @@ export function decodeYolov8(output, lb, confThreshold = DEFAULT_CONF_THRESHOLD)
 
   // Unlike the server we keep float coordinates rather than rounding: the box
   // smoother interpolates between results and wants the sub-pixel detail.
-  return nms(boxes).map((b) => ({
+  return filterTinyBoxes(nms(boxes)).map((b) => ({
     classId: b.classId,
     className: CLASS_NAMES[b.classId] ?? `class_${b.classId}`,
     confidence: b.score,
