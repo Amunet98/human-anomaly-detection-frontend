@@ -355,7 +355,20 @@ const LiveStream = ({ socket }) => {
             )}
           </div>
 
-          <canvas ref={captureCanvasRef} className="hidden" />
+          {/*
+            Offscreen scratch canvas for the server engine's frame capture -
+            never meant to be seen.
+
+            The inline style is load-bearing: Tailwind's `hidden` utility does
+            NOT work here. Mantine's NormalizeCSS injects `canvas { display:
+            inline-block }` through emotion at runtime, and runtime-injected
+            styles are *unlayered*, while Tailwind v4 puts its utilities in
+            `@layer utilities`. Unlayered rules beat layered ones outright,
+            whatever their specificity - so `.hidden` loses and the capture
+            canvas renders at its full videoWidth x videoHeight, looking like a
+            second video feed under the real one.
+          */}
+          <canvas ref={captureCanvasRef} style={{ display: 'none' }} />
 
           {/* ---- controls ---- */}
           <div className="mt-4 flex flex-col gap-3">
