@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "parity": "node scripts/parity-check.mjs"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",
@@ -17,6 +18,7 @@
     "@tabler/icons-react": "^3.44.0",
     "@vercel/microfrontends": "^2.4.0",
     "axios": "^1.18.1",
+    "onnxruntime-web": "1.27.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "react-router-dom": "^6.30.4",
