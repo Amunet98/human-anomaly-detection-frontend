@@ -19,6 +19,14 @@
 // training notebook's model.val()), and this is the cheap complement to it, not
 // a replacement.
 //
+// Fixture resolution is load-bearing, not incidental. Most fixtures are
+// downscaled to 960px to keep the repo light, but the lodge-group pair is stored
+// at native 2048px on purpose: the bug they guard turns on a single keypoint
+// confidence sitting within 0.01 of the threshold, and resampling the image
+// moves it off the boundary. Downscaled, they passed against the very bug they
+// were added for. If you re-encode a fixture, re-verify it still fails against
+// the defect - a regression fixture that no longer reproduces guards nothing.
+//
 // --augment additionally replays each fixture through six perturbations
 // (hflip, grayscale, darken, blur, downscale, centre-crop). That sweep is what
 // caught the original failure - the deployed 3-class model scored 7/7 on sit
@@ -51,12 +59,28 @@ const AUGMENT = process.argv.includes('--augment');
 
 const labels = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'labels.json'), 'utf8'));
 
+// Counts the checks that are pass/fail rather than scored: every-person and
+// cross-photo consistency. The confusion matrix stays purely informational.
+let failures = 0;
+
 // Top-1 by confidence, mirroring inference.js's own `top` reduction - that is
 // the value the socket path and StillResult actually surface to a user, so it
 // is the thing worth scoring.
 async function predict(buffer) {
   const { top } = await analyzeBuffer(buffer);
   return top ? top.className : null;
+}
+
+// Every posture in the frame, sorted, for fixtures that carry `expectedAll`.
+//
+// Top-1 is what a user sees, but it cannot express a multi-person frame: a photo
+// of two seated people and one standing scores identically whether the standing
+// one is right or wrong, because a `sit` wins the reduction either way. That is
+// exactly how a real bug survived - a woman behind a sofa flipped between sit and
+// stand across two near-identical photos while top-1 stayed `sit` on both.
+async function predictAll(buffer) {
+  const { detections } = await analyzeBuffer(buffer);
+  return detections.map((d) => d.className).sort();
 }
 
 // The six perturbations. Chosen to be things a real deployment hits - a mirrored
@@ -141,6 +165,45 @@ for (const { file, expected, got } of perFixture) {
 
 report(clean, 'confusion matrix (clean)');
 
+// --- multi-person and cross-photo consistency -------------------------------
+
+const multi = labels.filter((l) => l.expectedAll);
+if (multi.length) {
+  console.log('\n=== every-person check (fixtures with expectedAll) ===\n');
+  const seen = new Map();
+  for (const { file, expectedAll } of multi) {
+    const got = await predictAll(fs.readFileSync(path.join(FIXTURES, file)));
+    const want = [...expectedAll].sort();
+    const ok = got.length === want.length && got.every((c, i) => c === want[i]);
+    if (!ok) failures += 1;
+    seen.set(file, got);
+    console.log(
+      `  ${ok ? 'PASS' : 'FAIL'}  ${file.padEnd(22)} expected=[${want.join(',')}] got=[${got.join(',')}]`,
+    );
+  }
+
+  // Pairs of near-identical photos must not disagree. A classifier that is
+  // right on average but flips between two shots of the same scene is not
+  // usable on video, where consecutive frames differ far less than these do.
+  const pairs = multi.filter((l) => l.consistentWith && seen.has(l.consistentWith));
+  if (pairs.length) {
+    console.log('\n=== cross-photo consistency ===\n');
+    const done = new Set();
+    for (const { file, consistentWith } of pairs) {
+      const key = [file, consistentWith].sort().join('|');
+      if (done.has(key)) continue;
+      done.add(key);
+      const a = seen.get(file);
+      const b = seen.get(consistentWith);
+      const ok = a.length === b.length && a.every((c, i) => c === b[i]);
+      if (!ok) failures += 1;
+      console.log(
+        `  ${ok ? 'PASS' : 'FAIL'}  ${file} vs ${consistentWith}  [${a.join(',')}] vs [${b.join(',')}]`,
+      );
+    }
+  }
+}
+
 // --- perturbation sweep -------------------------------------------------
 
 if (AUGMENT) {
@@ -176,4 +239,11 @@ if (AUGMENT) {
   }
 }
 
-console.log('\nEVAL COMPLETE (informational - this script does not gate on a threshold)\n');
+if (failures === 0) {
+  console.log('\nEVAL COMPLETE - accuracy figures above are informational; the');
+  console.log('every-person and consistency checks are pass/fail and all passed.\n');
+  process.exit(0);
+} else {
+  console.log(`\n${failures} EVAL CHECK(S) FAILED\n`);
+  process.exit(1);
+}

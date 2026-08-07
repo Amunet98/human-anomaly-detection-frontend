@@ -4,5 +4,12 @@
   { "file": "street-fall.jpg",    "expected": "fall",  "note": "mid-air horizontal dive onto pavement" },
   { "file": "balcony-stand.jpg",  "expected": "stand", "note": "upright, arms crossed, legs cropped below knee" },
   { "file": "legacy-fall.jpg",    "expected": "fall",  "note": "mid-air backward fall against sky, no ground reference" },
-  { "file": "legacy-stand.jpg",   "expected": "stand", "note": "full body, upright, open field, small in frame" }
+  { "file": "legacy-stand.jpg",   "expected": "stand", "note": "full body, upright, open field, small in frame" },
+
+  { "file": "lodge-group-a.jpg", "expected": "sit", "expectedAll": ["sit", "sit", "stand"],
+    "consistentWith": "lodge-group-b.jpg",
+    "note": "REGRESSION CASE: three people - two seated, one standing behind the sofa with her legs hidden. Her knees are the model guessing; at KP_CONF_THRESHOLD 0.5 one scored exactly 0.50 here and 0.42 in the near-identical b, flipping her between sit and stand across the pair. KEEP AT NATIVE 2048x1537 - downscaling to 960px moves that knee's confidence off the boundary and the fixture silently stops reproducing the bug it exists to guard" },
+  { "file": "lodge-group-b.jpg", "expected": "sit", "expectedAll": ["sit", "sit", "stand"],
+    "consistentWith": "lodge-group-a.jpg",
+    "note": "near-identical reshoot of a; the pair must agree" }
 ]

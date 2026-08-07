@@ -37,7 +37,25 @@ export const KEYPOINT_EDGES = [
 // Below this a keypoint is treated as missing rather than trusted. The pose
 // head always emits all 17 coordinates; the confidence channel is the only
 // thing distinguishing a located joint from a guessed one.
-export const KP_CONF_THRESHOLD = 0.5;
+//
+// 0.65, not 0.5, and the difference is not cosmetic. Measured across every
+// detection in the fixture set, leg-joint confidence is sharply bimodal:
+// genuine joints land at 0.79 and then 0.80-1.00 (65 samples), while joints the
+// model is guessing at - legs hidden behind a sofa - land at 0.42/0.46/0.47/0.50
+// and below 0.30. The 0.50-0.79 band is empty apart from those two edges.
+//
+// 0.5 sat directly on top of the guessing cluster, which made classification
+// flip on rounding. Two near-identical photos of the same standing woman gave
+// `sit` and `stand`: in one, a hidden knee scored exactly 0.50 and passed,
+// making kneeDrop computable and the pose tier B; in the other the same knee
+// scored 0.42 and the subject fell to tier C. One hundredth of a point on the
+// model's least-confident output decided the answer. 0.65 puts the bar above
+// the guessing band entirely.
+//
+// This gates *drawing* as well as deciding, deliberately - the skeleton overlay
+// exists to show why a posture was chosen, so it must not render joints the
+// classifier refused to use.
+export const KP_CONF_THRESHOLD = 0.65;
 
 // Ultralytics letterbox padding.
 export const PAD_RGB = [114, 114, 114];
