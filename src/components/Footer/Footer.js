@@ -1,52 +1,25 @@
-import { createStyles, Container, Group, ActionIcon, rem } from "@mantine/core";
-import {
-  IconBrandTwitter,
-  IconBrandInstagram,
-  IconBrandFacebook,
-} from "@tabler/icons-react";
-
-
-const useStyles = createStyles((theme) => ({
-  footer: {
-    display: "flex",
-    width: "100%",
-    marginTop: rem(120),
-    borderTop: `${rem(1)} solid ${theme.colorScheme === "dark" ? theme.colors.dark[5] : theme.colors.gray[2]
-      }`,
-  },
-
-  inner: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingTop: theme.spacing.xl,
-    paddingBottom: theme.spacing.xl,
-
-    [theme.fn.smallerThan("xs")]: {
-      flexDirection: "column",
-    },
-  },
-
-  links: {
-    [theme.fn.smallerThan("xs")]: {
-      marginTop: theme.spacing.md,
-    },
-  },
-}));
+import { IconBrandGithub } from "@tabler/icons-react";
 
 export function FooterLinks() {
   return (
-    <div className="flex justify-center self-center mt-8 mb-4 px-4 w-full">
-      <div className="max-w-full">
-        <span className="flex flex-row flex-wrap items-center justify-center gap-1 text-center rounded-lg px-4 py-2 sm:px-8 bg-black">
-          <span className="self-center text-sm sm:text-lg">
-            Made In <em>"AIT"</em> By "Bimesh Poudel and Prasanna singh k.c." with
-          </span>
-          <span className="text-2xl sm:text-3xl">
-            💗
-          </span>
-        </span>
+    <footer className="border-t border-line mt-auto">
+      <div className="page-gutter py-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-center sm:text-left">
+        <p className="text-sm text-dim">
+          Built at <abbr title="Acharya Institute of Technology" className="no-underline">AIT</abbr> by{' '}
+          <span className="text-head">Bimesh Poudel</span> and{' '}
+          <span className="text-head">Prashanna KC</span>
+        </p>
+
+        <a
+          href="https://github.com/Amunet98/human-anomaly-detection-frontend"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 min-h-11 px-3 -mx-3 rounded-lg font-mono text-xs text-dim no-underline transition-colors duration-200 hover:text-head"
+        >
+          <IconBrandGithub size={16} aria-hidden="true" />
+          Source
+        </a>
       </div>
-    </div>
-  )
+    </footer>
+  );
 }

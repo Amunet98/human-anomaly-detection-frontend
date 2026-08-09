@@ -1,71 +1,128 @@
-const refrencePapers = [
-    {
-        title: "Cloud service-oriented architecture (CSoA) for agriculture through internet of things (IoT) and big data",
-        intro: "The proposed work aims to revolutionize agriculture by leveraging technological advancements such as Big Data, IoT, and Cloud Computing. It addresses the obstacles faced by farmers, making farming smarter and more efficient. By providing services like crop management, marketing, finance management, e-commerce, and web services through the cloud, the proposed work empowers farmers and reduces unemployment among the youth. This integration of technology not only transforms agriculture into a profitable sector but also contributes to the overall economic growth by enhancing the GDP.",
-        link: "https://ieeexplore.ieee.org/document/8191906"
-    },
-    {
-        title: "Architecture to Integrate IoT Networks Using Artificial Intelligence in the Cloud",
-        intro: "This paper proposes an algorithm for resource sharing among IoT devices in telecommunications networks. The algorithm is designed for a centralized management architecture controlled by an AI controller, which utilizes machine learning techniques to collect network information. A Function and Service Discovery Protocol (DFSP) is used to announce smart things connecting to the network, facilitated by the queued message telemetry transport protocol (MQTT). The algorithm discovers and allocates resources in the network, leading to improved efficiency and availability compared to conventional communication systems. By integrating IoT devices, the proposed algorithm enhances communication systems in terms of performance and effectiveness.",
-        link: "https://www.researchgate.net/publication/338025582_An_Intelligent_Algorithm_for_Resource_Sharing_and_Self-Management_of_Wireless-IoT-Gateway"
-    },
-    {
-        title: "Quality Assessment of Crops using Machine Learning Techniques",
-        intro: "Disease in a crop leads to low productivity and in turn leads to huge loss to the farmers. Thus, detection of disease in early stage will be beneficial for farmer so that necessary actions can be taken. This paper discusses supervised machine learning techniques to detect the disease in the plant with the help of the image of the plant. The comparison between classifications techniques are made in order to select model with highest accuracy. The Quadratic SVM results with highest accuracy of 83.3%. This trained model is used for the detection of new disease image..",
-        link: "https://ieeexplore.ieee.org/document/8701294"
-    },
-    {
-        title: "Automated Deployment of IoT Networks in Outdoor Scenarios using an Unmanned Ground Vehicle",
-        intro: "This work focuses on the integration of robotics and IoT systems to develop a robotic-aided IoT system for the automatic deployment of sensor networks. An Unmanned Ground Vehicle (UGV) is used to identify optimal positions for IoT node deployment in outdoor environments, based on Received Signal Strength Indicator (RSSI) measurements. Accurate robot localization information obtained from odometry, inertial sensors, and GPS is utilized. The IoT nodes employ IPv6 protocol with IEEE 802.15.4 (6TiSCH) technology and multi-hop communications to ensure wide coverage. Experimental results in a real outdoor context demonstrate the feasibility of the system. The robotic-aided approach outperforms manual deployment, improving communication efficiency and achieving a stable IoT network topology.",
-        link: "https://ieeexplore.ieee.org/document/9067099"
-    },
-    {
-        title: "A Comprehensive Survey on Internet of Things (IoT) Toward 5G Wireless System",
-        intro: "This article presents an overview of the integration of Internet of Things (IoT) in 5G wireless systems. With the growing popularity of wireless technologies, 5G has emerged as a promising solution to meet the demands of high data rates, multiple device connectivity, low-latency quality of service, and low interference. The article discusses the challenges and vision of various communication industries in implementing 5G IoT systems, along with a detailed analysis of the different layers involved. It covers emerging technologies such as 5G new radio, MIMO with beamforming, mm-wave communication, heterogeneous networks, and the role of augmented reality in IoT. Additionally, it addresses topics like low-power wide-area networks, security challenges, and future research directions in the 5G IoT landscape.",
-        link: "https://ieeexplore.ieee.org/document/8879484"
-    },
-    {
-        title: "Crop Selection and IoT Based Monitoring System for Precision Agriculture",
-        intro: "The proposed work emphasizes the significance of IoT in agriculture, particularly in implementing precision agriculture techniques to meet the increasing demand for food production. By monitoring environmental factors like temperature, humidity, and soil moisture, the system assists farmers in optimizing crop growth and selecting suitable crops based on collected data and environmental conditions. This approach minimizes the risks associated with crop failure, low yield, excessive water usage, and overuse of fertilizers and pesticides. Sensor nodes deployed in the field collect data, which is then analyzed and visualized in the cloud, enabling farmers to make precise and informed decisions for their crops.",
-        link: "https://ieeexplore.ieee.org/document/9077713"
-    },
-    {
-        title: "IoT in Agriculture: Irrigation Monitoring and Control System Example",
-        intro: "Wireless technologies have become pervasive in our lives, driving the adoption of the Internet of Things (IoT) in various domains, including agriculture. IoT plays a crucial role in environmental monitoring, facilitating efficient problem identification, resource management, and precision agriculture. Precision agriculture utilizes modern technologies, such as IoT and cloud-based services, to enhance yields, profitability, and sustainability by optimizing inputs like water, fertilizers, and land. This paper explores the applications of IoT in agriculture, communication protocols involved, and presents a prototype IoT-based water pipeline monitoring and management system developed in Usak, Turkey, demonstrating the practical implementation of IoT technology in agriculture.",
-        link: "https://ieeexplore.ieee.org/document/9279037"
-    },
-    {
-        title: "Automatic Detection and Image Recognition of Precision Agriculture for Citrus Diseases",
-        intro: "In recent years, the development of precision agriculture is a new technology. The main reason for the automation of agricultural processes is to save the time and energy required to perform repeated farming tasks and to increase production by treating each crop separately and applying smart agricultural concepts. In this paper, an automatic detection and image recognition of citrus diseases is presented that can help farmer find the disease and identify it from the captured images. This method use YOLO(You Only Look Once) algorithm which is an object detection model to detect and recognize the diseases from citrus leaf images. YOLO can realtime detect the disease and circle around it on the image and video. The dataset includes images of citrus leaf with two kinds of diseases: Citrus Canker, Citrus Greening.",
-        link: "https://ieeexplore.ieee.org/document/9301932"
-    },
-]
+import { IconExternalLink } from '@tabler/icons-react';
 
+// The work this system is actually built on. Each entry's title, first author
+// and year were checked against arXiv or Crossref rather than written from
+// memory; `relevance` says what the paper contributes *here*, so the list
+// documents the pipeline instead of being a generic reading list.
+const referencePapers = [
+    {
+        title: 'You Only Look Once: Unified, Real-Time Object Detection',
+        authors: 'Redmon et al.',
+        venue: 'arXiv:1506.02640',
+        year: 2015,
+        relevance:
+            'The original YOLO paper: a single network predicting boxes and class probabilities in one pass. This demo runs a YOLOv8 descendant of it, which is what makes detection cheap enough to run in a browser tab.',
+        link: 'https://arxiv.org/abs/1506.02640',
+    },
+    {
+        title:
+            'YOLO-Pose: Enhancing YOLO for Multi Person Pose Estimation Using Object Keypoint Similarity Loss',
+        authors: 'Maji et al.',
+        venue: 'arXiv:2204.06806',
+        year: 2022,
+        relevance:
+            'Extends YOLO to predict keypoints alongside boxes in a single shot. This is the architecture behind the pose model here — the skeleton drawn over each subject comes from exactly this kind of head, and the posture decision is made from those joints.',
+        link: 'https://arxiv.org/abs/2204.06806',
+    },
+    {
+        title: 'OpenPose: Realtime Multi-Person 2D Pose Estimation using Part Affinity Fields',
+        authors: 'Cao et al.',
+        venue: 'arXiv:1812.08008',
+        year: 2018,
+        relevance:
+            'The bottom-up approach that made multi-person pose estimation real-time, and the source of the 17-keypoint COCO skeleton convention this project draws and reasons about.',
+        link: 'https://arxiv.org/abs/1812.08008',
+    },
+    {
+        title: 'Fall Detection Based on Key Points of Human-Skeleton Using OpenPose',
+        authors: 'Chen et al.',
+        venue: 'Symmetry',
+        year: 2020,
+        relevance:
+            'Derives a fall decision from skeleton geometry — torso angle and the speed of the hip-centre descent — rather than training a classifier on raw frames. It is the same argument this project makes: a horizontal torso you can see is more trustworthy than a label you have to accept.',
+        link: 'https://doi.org/10.3390/sym12050744',
+    },
+    {
+        title: 'Vision-Based Fall Detection with Convolutional Neural Networks',
+        authors: 'Núñez-Marcos et al.',
+        venue: 'Wireless Communications and Mobile Computing',
+        year: 2017,
+        relevance:
+            'Uses optical flow over a window of frames rather than a single image, which is the case for why a fall has to be judged over time. The temporal voting here — a detection must persist for over a second before it is confirmed — is the cheap version of that idea.',
+        link: 'https://doi.org/10.1155/2017/9474806',
+    },
+    {
+        title: 'Simple Online and Realtime Tracking',
+        authors: 'Bewley et al.',
+        venue: 'arXiv:1602.00763',
+        year: 2016,
+        relevance:
+            'SORT: associate detections across frames by IoU and a Kalman filter, nothing more. The tracker in this app is a deliberately lighter relative — IoU association without the Kalman step — and it is what gives each subject a stable id to vote on.',
+        link: 'https://arxiv.org/abs/1602.00763',
+    },
+    {
+        title: 'Simple Online and Realtime Tracking with a Deep Association Metric',
+        authors: 'Wojke et al.',
+        venue: 'arXiv:1703.07402',
+        year: 2017,
+        relevance:
+            'DeepSORT adds an appearance embedding so identities survive occlusion. Not used here — the embedding costs more than the detector on a phone — but it is the upgrade path if ids start swapping when two people cross.',
+        link: 'https://arxiv.org/abs/1703.07402',
+    },
+    {
+        title: 'Human fall detection on embedded platform using depth maps and wireless accelerometer',
+        authors: 'Kwolek & Kepski',
+        venue: 'Computer Methods and Programs in Biomedicine',
+        year: 2014,
+        relevance:
+            'The paper accompanying the UR Fall Detection dataset, still one of the standard benchmarks. It fuses depth with a worn accelerometer — a useful contrast with the RGB-only, nothing-to-wear constraint this project works under.',
+        link: 'https://doi.org/10.1016/j.cmpb.2014.09.005',
+    },
+];
 
+export const ReferencePapers = () => (
+    <div className="page-gutter py-10 sm:py-16">
+        <div className="mx-auto max-w-3xl">
+            <header className="text-center">
+                <span className="section-tag">References</span>
+                <h1 className="mt-4 text-2xl sm:text-3xl font-bold text-head">
+                    What this is built on
+                </h1>
+                <p className="mt-3 mx-auto max-w-prose text-sm text-dim">
+                    Detection, pose estimation, tracking and the fall-decision literature behind
+                    the live console.
+                </p>
+            </header>
 
-export const ReferencePapers = () => {
-    return (
-        <div className="flex mt-12 flex-col items-center justify-center">
-            <span className="font-mono mb-10 font-bold text-3xl ">
-                Reference Paper's
-            </span>
-            <div className="flex flex-col items-center justify-center">
-                {
-                    refrencePapers.map((item, index) => {
-                        return (
-                            <div className="w-10/12 outline rounded-lg mb-10 p-7 bg-slate-200">
-                                <a href={item.link} target="_blank" rel="noopener noreferrer">
-                                    <div key={index} className="flex flex-col">
-                                        <span className="font-mono mb-3 font-bold text-xl">{item.title}</span>
-                                        <span className="font-sans text-blue-800 font-semibold mb-2">{item.link}</span>
-                                        <span className="font-serif text-base">{item.intro}</span>
-                                    </div>
-                                </a>
-                            </div>
-                        )
-                    })
-                }
-            </div>
+            <ul className="mt-10 space-y-4">
+                {referencePapers.map((paper) => (
+                    <li key={paper.link}>
+                        <a
+                            href={paper.link}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="group block rounded-2xl border border-line bg-raise p-5 sm:p-6 no-underline transition-colors duration-200 hover:border-accent"
+                        >
+                            <h2 className="text-base sm:text-lg font-semibold text-head transition-colors duration-200 group-hover:text-accent">
+                                {paper.title}
+                            </h2>
+
+                            <p className="mt-1.5 font-mono text-[11px] uppercase tracking-widest text-dim">
+                                {paper.authors} · {paper.venue} · {paper.year}
+                            </p>
+
+                            {/* Capped independently of the card: at 14px the
+                                full 768px card ran 100 characters per line. */}
+                            <p className="mt-3 text-sm text-body max-w-prose">{paper.relevance}</p>
+
+                            <span className="mt-4 inline-flex items-center gap-1.5 font-mono text-xs text-accent">
+                                Read
+                                <IconExternalLink size={14} aria-hidden="true" />
+                            </span>
+                        </a>
+                    </li>
+                ))}
+            </ul>
         </div>
-    )
-}
+    </div>
+);

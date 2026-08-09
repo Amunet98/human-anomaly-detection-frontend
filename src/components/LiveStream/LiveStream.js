@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { IconCameraRotate } from '@tabler/icons-react';
 import { DetectionOverlay } from '../DetectionOverlay/DetectionOverlay';
 import { EventLog } from '../EventLog/EventLog';
 import { Tracker } from '../../lib/detect/tracker';
@@ -21,6 +22,35 @@ const CAPTURE_INTERVAL_MS = 500;
 // the public root are unreachable when this app is proxied under the portfolio
 // domain. The selector below hides the option while this is null.
 const SAMPLE_CLIP_URL = null;
+
+// Which lens to open with.
+//
+// On a phone you hold the device and point it at the person you're watching,
+// so the rear camera is the one that matches the actual use case - and rear
+// lenses are considerably wider than front ones, which is what lets a standing
+// adult fit in frame from a couple of metres instead of across the room. On a
+// laptop there is only the front camera worth opening.
+//
+// `pointer: coarse` rather than a width breakpoint: this is a question about
+// the hardware, not the window size, and a narrow desktop window is still a
+// desktop.
+function preferredFacingMode() {
+  return window.matchMedia?.('(pointer: coarse)').matches ? 'environment' : 'user';
+}
+
+// Whether a camera API is reachable at all cannot change during a session, so
+// it is resolved once at import rather than inside the acquisition effect:
+// setting state synchronously in an effect body cascades an extra render, which
+// is the same reason that effect only ever calls setState from async callbacks.
+//
+// The secure-context case is the one that actually bites - navigator.mediaDevices
+// is undefined on plain http at a LAN address, which is exactly how you would
+// open this on a phone to try it.
+const CAMERA_API_ERROR = navigator.mediaDevices?.getUserMedia
+  ? null
+  : window.isSecureContext
+    ? 'This browser does not expose a camera API.'
+    : 'The camera needs a secure context — open this page over HTTPS.';
 
 // The backend returns boxes as [x1, y1, x2, y2]; the tracker works in objects.
 function normalizeServerDetections(detections = []) {
@@ -50,8 +80,14 @@ const LiveStream = ({ socket }) => {
   const [threshold, setThreshold] = useState(DEFAULT_CONF_THRESHOLD);
   const [cameraReady, setCameraReady] = useState(false);
   const [cameraError, setCameraError] = useState(null);
-  const [facingMode, setFacingMode] = useState('user');
+  const [facingMode, setFacingMode] = useState(preferredFacingMode);
   const [hasMultipleCameras, setHasMultipleCameras] = useState(false);
+  // The stage's aspect ratio is taken from the stream rather than hardcoded, so
+  // the box matches the camera exactly: nothing is cropped and there are no
+  // letterbox bars. Held as a string ("1280 / 720") because that is what the
+  // CSS custom property wants. Seeded at 4/3 for the first paint, before any
+  // metadata has arrived.
+  const [stageRatio, setStageRatio] = useState('4 / 3');
   const [modelCached, setModelCached] = useState(false);
   const [events, setEvents] = useState([]);
   const [serverStats, setServerStats] = useState({ fps: 0, latency: 0 });
@@ -176,8 +212,30 @@ const LiveStream = ({ socket }) => {
     // async callbacks, so they don't cascade a render out of this effect, and
     // holding the previous value while a camera flip resolves keeps the last
     // frame on screen instead of blinking the panel to "idle".
+    //
+    // Every constraint is `ideal`, never `exact`: a browser that cannot honour
+    // one picks its closest mode instead of rejecting outright. 1280x720 asks
+    // for a real sensor mode rather than whatever low default the UA would
+    // otherwise hand back - the detector letterboxes to the model's input size
+    // anyway, but a sharper source is a better one to letterbox from. The
+    // OverconstrainedError retry below covers the devices that reject it
+    // regardless.
+    if (CAMERA_API_ERROR) return undefined;
+
     navigator.mediaDevices
-      ?.getUserMedia?.({ video: { facingMode: { ideal: facingMode } } })
+      .getUserMedia({
+        video: {
+          facingMode: { ideal: facingMode },
+          width: { ideal: 1280 },
+          height: { ideal: 720 },
+        },
+      })
+      .catch((err) => {
+        if (err?.name !== 'OverconstrainedError') throw err;
+        return navigator.mediaDevices.getUserMedia({
+          video: { facingMode: { ideal: facingMode } },
+        });
+      })
       .then((stream) => {
         if (cancelled) {
           stream.getTracks().forEach((t) => t.stop());
@@ -275,17 +333,41 @@ const LiveStream = ({ socket }) => {
   const stats = engine === 'browser' ? browser.stats : serverStats;
   const engineLabel = engine === 'browser' ? browser.ep || 'browser' : 'server';
 
+  // videoWidth/Height are 0 until metadata lands; guard so a stray early event
+  // can't write "0 / 0" into the ratio and collapse the stage.
+  const onLoadedMetadata = useCallback((event) => {
+    const { videoWidth, videoHeight } = event.currentTarget;
+    if (videoWidth && videoHeight) setStageRatio(`${videoWidth} / ${videoHeight}`);
+  }, []);
+
   return (
-    <div className="w-full max-w-6xl mx-auto px-4">
+    <div className="w-full max-w-6xl mx-auto page-gutter">
       <div className="flex flex-col lg:flex-row gap-6">
         {/* ---- viewport ---- */}
         <div className="flex-1 min-w-0">
           <div
             ref={hostRef}
-            className={`relative w-full rounded-2xl overflow-hidden bg-black/30 ${
+            style={{ '--stage-ratio': stageRatio }}
+            className={`camera-stage relative w-full overflow-hidden bg-black/30 sm:rounded-2xl ${
               summary.confirmed ? 'console-alert' : ''
             }`}
           >
+            {/*
+              object-contain, not cover.
+              ----------------------------------------------------------------
+              cover crops whatever doesn't fit the box - on a 16:9 phone camera
+              in the old fixed 4:3 stage that was roughly a quarter of the frame
+              width, as viewport.js's own comment notes. The model always saw
+              the whole frame, so those detections were computed and then drawn
+              outside the visible element; what it cost the user was framing,
+              since the only way to get a person inside that narrower visible
+              window was to back away from them.
+
+              With the stage's aspect ratio driven by the stream, contain and
+              cover agree in the steady state - contain is what keeps the full
+              field of view visible during the moments they don't, i.e. while a
+              camera flip resolves and the box still has the old ratio.
+            */}
             <video
               ref={videoRef}
               autoPlay
@@ -293,7 +375,8 @@ const LiveStream = ({ socket }) => {
               muted
               loop={source === 'clip'}
               src={source === 'clip' ? SAMPLE_CLIP_URL ?? undefined : undefined}
-              className={`w-full block aspect-[4/3] object-cover ${mirror ? 'scale-x-[-1]' : ''}`}
+              onLoadedMetadata={onLoadedMetadata}
+              className={`w-full h-full block object-contain ${mirror ? 'scale-x-[-1]' : ''}`}
             />
 
             <DetectionOverlay
@@ -301,11 +384,11 @@ const LiveStream = ({ socket }) => {
               sourceRef={videoRef}
               getTracks={getTracks}
               mirror={mirror}
-              fit="cover"
+              fit="contain"
             />
 
             {/* HUD */}
-            <div className="absolute top-0 inset-x-0 flex items-start justify-between p-3 pointer-events-none font-mono text-[11px] tracking-wider">
+            <div className="stage-safe-top absolute top-0 inset-x-0 flex items-start justify-between px-3 pointer-events-none font-mono text-[11px] tracking-wider">
               <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded bg-black/55 text-white backdrop-blur-sm">
                 <span
                   className={`w-1.5 h-1.5 rounded-full ${
@@ -314,29 +397,35 @@ const LiveStream = ({ socket }) => {
                 />
                 {detecting ? 'LIVE' : 'IDLE'}
               </span>
-              <span className="px-2 py-1 rounded bg-black/55 text-white/85 backdrop-blur-sm">
+              <span className="px-2 py-1 rounded bg-black/55 text-white/85 backdrop-blur-sm tabular-nums">
                 {stats.fps.toFixed(0)} FPS
                 {stats.latency ? ` · ${stats.latency.toFixed(0)}ms` : ''} · {engineLabel}
               </span>
             </div>
 
-            {hasMultipleCameras && usingOwnCamera && (
-              <button
-                type="button"
-                onClick={() => setFacingMode((m) => (m === 'user' ? 'environment' : 'user'))}
-                className="absolute bottom-3 right-3 p-2 rounded-full bg-black/55 text-white text-lg leading-none backdrop-blur-sm"
-                aria-label="Switch camera"
-                title="Switch camera"
-              >
-                🔄
-              </button>
-            )}
+            <div className="stage-safe-bottom absolute bottom-0 inset-x-0 flex items-end justify-between px-3 pointer-events-none">
+              {summary.confirmed ? (
+                <div className="px-3 py-1.5 pebble-badge bg-red-600 text-white font-mono text-xs font-bold tracking-wider">
+                  FALL CONFIRMED
+                </div>
+              ) : (
+                <span />
+              )}
 
-            {summary.confirmed && (
-              <div className="absolute bottom-3 left-3 px-3 py-1.5 pebble-badge bg-red-600 text-white font-mono text-xs font-bold tracking-wider">
-                FALL CONFIRMED
-              </div>
-            )}
+              {hasMultipleCameras && usingOwnCamera && (
+                <button
+                  type="button"
+                  onClick={() => setFacingMode((m) => (m === 'user' ? 'environment' : 'user'))}
+                  className="pointer-events-auto grid h-11 w-11 place-items-center rounded-full bg-black/55 text-white backdrop-blur-sm transition-transform duration-200 active:scale-95 cursor-pointer"
+                  aria-label={
+                    facingMode === 'user' ? 'Switch to rear camera' : 'Switch to front camera'
+                  }
+                  title="Switch camera"
+                >
+                  <IconCameraRotate size={20} aria-hidden="true" />
+                </button>
+              )}
+            </div>
 
             {/* Blocking states, in priority order. */}
             {engine === 'browser' && browser.status === 'loading' && (
@@ -346,33 +435,30 @@ const LiveStream = ({ socket }) => {
               <BlockingMessage>
                 Detector failed to start: {browser.error}
                 <br />
-                <button className="underline mt-2" onClick={() => changeEngine('server')}>
+                <button
+                  type="button"
+                  className="underline mt-2 min-h-11 cursor-pointer"
+                  onClick={() => changeEngine('server')}
+                >
                   Switch back to server detection
                 </button>
               </BlockingMessage>
             )}
-            {usingOwnCamera && cameraError && (
-              <BlockingMessage>{cameraError}</BlockingMessage>
+            {usingOwnCamera && (cameraError || CAMERA_API_ERROR) && (
+              <BlockingMessage>{cameraError || CAMERA_API_ERROR}</BlockingMessage>
             )}
             {source === 'clip' && !SAMPLE_CLIP_URL && (
               <BlockingMessage>No sample clip is bundled yet.</BlockingMessage>
             )}
           </div>
 
-          {/*
-            Offscreen scratch canvas for the server engine's frame capture -
-            never meant to be seen.
-
-            The inline style is load-bearing: Tailwind's `hidden` utility does
-            NOT work here. Mantine's NormalizeCSS injects `canvas { display:
-            inline-block }` through emotion at runtime, and runtime-injected
-            styles are *unlayered*, while Tailwind v4 puts its utilities in
-            `@layer utilities`. Unlayered rules beat layered ones outright,
-            whatever their specificity - so `.hidden` loses and the capture
-            canvas renders at its full videoWidth x videoHeight, looking like a
-            second video feed under the real one.
-          */}
-          <canvas ref={captureCanvasRef} style={{ display: 'none' }} />
+          {/* Offscreen scratch canvas for the server engine's frame capture -
+              never meant to be seen. `hidden` is safe again now that Mantine
+              is gone: its NormalizeCSS used to inject an unlayered
+              `canvas { display: inline-block }` at runtime, which outranked
+              Tailwind's layered utility and rendered this at full
+              videoWidth x videoHeight under the real feed. */}
+          <canvas ref={captureCanvasRef} className="hidden" />
 
           {/* ---- controls ---- */}
           <div className="mt-4 flex flex-col gap-3">
@@ -411,12 +497,12 @@ const LiveStream = ({ socket }) => {
                 step="0.05"
                 value={threshold}
                 onChange={(e) => setThreshold(Number(e.target.value))}
-                className="w-full max-w-xs accent-red-600"
+                className="w-full max-w-xs accent-accent cursor-pointer"
                 aria-label="Detection confidence threshold"
               />
             </ControlRow>
 
-            <p className="text-xs opacity-55 leading-relaxed">
+            <p className="text-xs text-dim leading-relaxed max-w-prose">
               {engine === 'browser'
                 ? 'Detection runs entirely in this tab — your camera never leaves the device. The model downloads once and is cached.'
                 : 'Frames are sent to the self-hosted backend for detection, about twice a second. Switch to browser detection for real-time boxes.'}{' '}
@@ -436,8 +522,8 @@ const LiveStream = ({ socket }) => {
 
 function ControlRow({ label, children }) {
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <span className="font-mono text-[11px] uppercase tracking-widest opacity-55 w-40">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+      <span className="font-mono text-[11px] uppercase tracking-widest text-dim w-full sm:w-40 tabular-nums">
         {label}
       </span>
       {children}
@@ -447,17 +533,17 @@ function ControlRow({ label, children }) {
 
 function Segmented({ value, onChange, options }) {
   return (
-    <div className="inline-flex rounded-lg overflow-hidden border border-gray-500/30">
+    <div className="inline-flex rounded-lg overflow-hidden border border-line">
       {options.map((option) => (
         <button
           key={option.value}
           type="button"
           onClick={() => onChange(option.value)}
           aria-pressed={value === option.value}
-          className={`px-3 py-1.5 font-mono text-[11px] tracking-wider transition-colors ${
+          className={`min-h-11 px-3 font-mono text-[11px] tracking-wider transition-colors duration-200 cursor-pointer ${
             value === option.value
-              ? 'bg-red-600 text-white'
-              : 'bg-transparent opacity-70 hover:opacity-100'
+              ? 'bg-accent text-canvas font-semibold'
+              : 'bg-transparent text-dim hover:text-head hover:bg-raise'
           }`}
         >
           {option.label}
@@ -469,7 +555,7 @@ function Segmented({ value, onChange, options }) {
 
 function BlockingMessage({ children }) {
   return (
-    <div className="absolute inset-0 flex items-center justify-center bg-black/60 px-6 text-center font-mono text-sm text-white">
+    <div className="absolute inset-0 flex items-center justify-center bg-black/70 px-6 text-center font-mono text-sm text-white">
       <div>{children}</div>
     </div>
   );
@@ -494,7 +580,7 @@ function LoadingOverlay({ progress }) {
       </span>
       <div className="w-full max-w-xs h-1 rounded bg-white/20 overflow-hidden">
         <div
-          className={`h-full bg-red-500 transition-[width] duration-200 ${
+          className={`h-full bg-accent transition-[width] duration-200 ${
             determinate ? '' : 'console-indeterminate'
           }`}
           style={determinate ? { width: `${pct}%` } : undefined}

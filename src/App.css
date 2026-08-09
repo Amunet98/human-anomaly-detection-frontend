@@ -1,6 +1,7 @@
+/* Echoes the portfolio's design language (accent, mono labels, pebble radii)
+   so the demo reads as the same site. Every colour here resolves through the
+   tokens in index.css, so both themes come for free. */
 
-/* Facelift: echo the portfolio's design language (accent #dc2626,
-   mono labels, pebble radii) so the demo feels like the same person. */
 .had-mark {
   display: inline-flex;
   align-items: center;
@@ -8,45 +9,47 @@
   width: 2.5rem;
   height: 2.5rem;
   flex-shrink: 0;
-  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace;
+  font-family: var(--mono);
   font-weight: 700;
   font-size: 0.8rem;
   letter-spacing: 0.02em;
-  color: #ef4444;
-  background: rgba(220, 38, 38, 0.12);
-  border: 1.5px solid rgba(220, 38, 38, 0.45);
+  color: var(--accent);
+  background: var(--accent-dim);
+  border: 1.5px solid var(--accent);
   border-radius: 58% 42% 45% 55% / 48% 58% 42% 52%;
 }
 
+/* Typography only - display/direction are left to utilities so the header can
+   hide this below the xs breakpoint. A `display` here would win outright:
+   App.css is unlayered and Tailwind's utilities sit in @layer utilities. */
 .had-name {
-  display: flex;
-  flex-direction: column;
   line-height: 1.25;
   font-weight: 700;
   font-size: 0.95rem;
+  color: var(--text-h);
 }
 
 .had-sub {
-  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace;
+  font-family: var(--mono);
   font-weight: 400;
   font-size: 0.62rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  opacity: 0.55;
+  color: var(--text-dim);
 }
 
 .section-tag {
   display: inline-flex;
   align-items: center;
-  font-family: ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace;
+  font-family: var(--mono);
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.18em;
   text-transform: uppercase;
-  color: #ef4444;
+  color: var(--accent);
   padding: 0.4rem 0.75rem;
-  border: 1px solid rgba(220, 38, 38, 0.45);
-  background: rgba(220, 38, 38, 0.1);
+  border: 1px solid var(--accent);
+  background: var(--accent-dim);
   border-radius: 1.2em 0.6em 1.1em 0.7em / 0.7em 1.1em 0.6em 1.2em;
 }
 
@@ -54,12 +57,18 @@
   border-radius: 1.1em 0.7em 1.2em 0.6em / 0.6em 1.2em 0.7em 1.1em;
 }
 
+/* Page shell ---------------------------------------------------------- */
+
+.page-gutter {
+  padding-inline: var(--page-gutter);
+}
+
 /* Live console -------------------------------------------------------- */
 
 /* Ring the whole viewport while a fall is confirmed, so the state is legible
    from across a room rather than only from the label on the box. */
 .console-alert {
-  box-shadow: 0 0 0 2px #dc2626, 0 0 28px rgba(220, 38, 38, 0.45);
+  box-shadow: 0 0 0 2px var(--accent), 0 0 28px var(--accent-glow);
 }
 
 .console-pulse {
@@ -81,6 +90,60 @@
 @keyframes console-sweep {
   0% { margin-left: -35%; }
   100% { margin-left: 100%; }
+}
+
+/* The camera stage.
+   --------------------------------------------------------------------
+   On a phone the stage goes edge-to-edge and is capped by the viewport so the
+   controls under it stay reachable without scrolling. `dvh` rather than `vh`:
+   `vh` on mobile is the *largest* possible viewport, so with the URL bar
+   showing a 100vh stage pushes its own controls off-screen.
+
+   --stage-ratio is set inline from the live stream's dimensions, so the box
+   matches the camera exactly - no letterbox bars and, more importantly, no
+   crop. Cropping is what forced the subject to stand further back. */
+.camera-stage {
+  aspect-ratio: var(--stage-ratio, 4 / 3);
+  max-height: calc(100dvh - var(--stage-reserved, 12rem));
+  min-height: 14rem;
+  margin-inline: auto;
+}
+
+/* Why 12rem and not more: when this cap binds, aspect-ratio holds and the
+   *width* shrinks instead - so an over-generous reserve quietly undoes the
+   full-bleed width below. 12rem leaves the header plus a sliver of the control
+   row visible under a portrait feed on a typical phone, which is the amount
+   that reads as "there is more below" without stealing from the feed. */
+
+@media (max-width: 639px) {
+  .camera-stage {
+    /* Cancel the page gutter so the feed is genuinely full-bleed.
+       The width override is required, not belt-and-braces: the element carries
+       Tailwind's `w-full`, and a negative margin on something with an explicit
+       width:100% only shifts the box left - it does not widen it. Without this
+       the stage slid under the left gutter and left a gap on the right. */
+    width: calc(100% + var(--page-gutter) * 2);
+    margin-inline: calc(var(--page-gutter) * -1);
+    border-radius: 0;
+  }
+}
+
+/* Landscape on a phone leaves ~390px of height in total, so the portrait
+   reserve would push the stage below its own minimum and overflow. */
+@media (max-height: 500px) {
+  .camera-stage {
+    --stage-reserved: 7rem;
+    min-height: 8rem;
+  }
+}
+
+/* Overlaid controls clear the notch and the gesture bar. */
+.stage-safe-top {
+  padding-top: max(0.75rem, env(safe-area-inset-top));
+}
+
+.stage-safe-bottom {
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
 }
 
 @media (prefers-reduced-motion: reduce) {

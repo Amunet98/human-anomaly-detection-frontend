@@ -1,10 +1,10 @@
-import { Group, Text, useMantineTheme, rem } from "@mantine/core";
+import { useRef, useState } from "react";
 import { IconUpload, IconPhoto, IconX } from "@tabler/icons-react";
-import { Dropzone, IMAGE_MIME_TYPE } from "@mantine/dropzone";
-import { useState } from "react";
 import axios from "axios";
 import { API_URL } from "../../lib/api";
 import { StillResult } from "../StillResult/StillResult";
+
+const MAX_BYTES = 3 * 1024 ** 2;
 
 const toBase64 = (file) =>
   new Promise((resolve, reject) => {
@@ -14,15 +14,30 @@ const toBase64 = (file) =>
     reader.onerror = reject;
   });
 
+// A native <input type="file"> in a label, plus drag handlers - which is all
+// @mantine/dropzone was doing here, minus the emotion runtime and the three
+// Mantine packages it dragged in. The label makes the whole panel a click
+// target and keeps the input keyboard-reachable for free.
 export function CheckWithUploadOrDrag({ onResult }) {
-  const theme = useMantineTheme();
+  const inputRef = useRef(null);
+  const [dragState, setDragState] = useState('idle'); // idle | accept | reject
   const [preview, setPreview] = useState(null);
   const [detections, setDetections] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const analyse = async (files) => {
-    const dataUrl = await toBase64(files[0]);
+  const analyse = async (file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('That file is not an image.');
+      return;
+    }
+    if (file.size > MAX_BYTES) {
+      setError('That image is over the 3 MB limit.');
+      return;
+    }
+
+    const dataUrl = await toBase64(file);
     // Shown immediately, before the request resolves - the round trip to a
     // free-tier host that may be cold-starting is long enough that showing
     // nothing reads as broken.
@@ -42,45 +57,57 @@ export function CheckWithUploadOrDrag({ onResult }) {
     }
   };
 
+  const onDrop = (event) => {
+    event.preventDefault();
+    setDragState('idle');
+    analyse(event.dataTransfer.files?.[0]);
+  };
+
+  const onDragOver = (event) => {
+    // Without preventDefault the browser navigates to the dropped file.
+    event.preventDefault();
+    const item = event.dataTransfer.items?.[0];
+    setDragState(item && item.kind === 'file' && !item.type.startsWith('image/')
+      ? 'reject'
+      : 'accept');
+  };
+
+  const Icon = dragState === 'reject' ? IconX : dragState === 'accept' ? IconUpload : IconPhoto;
+
   return (
     <div className="w-full max-w-md">
-      <span className="text-center text-lg font-mono font-medium self-center">
-        Test using PC Image.
-      </span>
-      <Dropzone onDrop={analyse} maxSize={3 * 1024 ** 2} accept={IMAGE_MIME_TYPE} loading={loading}>
-        <Group
-          position="center"
-          spacing="xl"
-          style={{ minHeight: rem(220), pointerEvents: "none" }}
-        >
-          <Dropzone.Accept>
-            <IconUpload
-              size="3.2rem"
-              stroke={1.5}
-              color={theme.colors[theme.primaryColor][theme.colorScheme === "dark" ? 4 : 6]}
-            />
-          </Dropzone.Accept>
-          <Dropzone.Reject>
-            <IconX
-              size="3.2rem"
-              stroke={1.5}
-              color={theme.colors.red[theme.colorScheme === "dark" ? 4 : 6]}
-            />
-          </Dropzone.Reject>
-          <Dropzone.Idle>
-            <IconPhoto size="3.2rem" stroke={1.5} />
-          </Dropzone.Idle>
+      <h3 className="font-mono text-sm font-medium text-head mb-3">Upload an image</h3>
 
-          <div>
-            <Text size="xl" inline>
-              Drag images here or click to select files
-            </Text>
-            <Text size="sm" color="dimmed" inline mt={7}>
-              Attach files
-            </Text>
-          </div>
-        </Group>
-      </Dropzone>
+      <label
+        onDrop={onDrop}
+        onDragOver={onDragOver}
+        onDragLeave={() => setDragState('idle')}
+        className={`flex flex-col items-center justify-center gap-3 min-h-55 px-6 py-8 text-center rounded-2xl border border-dashed cursor-pointer transition-colors duration-200 bg-raise ${
+          dragState === 'reject'
+            ? 'border-accent text-accent'
+            : dragState === 'accept'
+              ? 'border-accent bg-accent-dim text-head'
+              : 'border-line hover:border-line-bright text-dim'
+        } ${loading ? 'pointer-events-none opacity-60' : ''}`}
+      >
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/*"
+          className="sr-only"
+          disabled={loading}
+          onChange={(event) => {
+            analyse(event.target.files?.[0]);
+            // Reset so re-selecting the same file fires change again.
+            event.target.value = '';
+          }}
+        />
+        <Icon size={44} stroke={1.5} aria-hidden="true" />
+        <span className="text-head">
+          {loading ? 'Analysing…' : 'Drop an image here, or tap to choose one'}
+        </span>
+        <span className="text-xs text-dim">PNG or JPEG, up to 3 MB</span>
+      </label>
 
       <StillResult src={preview} detections={detections} loading={loading} error={error} />
     </div>

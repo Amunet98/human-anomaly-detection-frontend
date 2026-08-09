@@ -17,10 +17,6 @@
     "check": "npm run tracker && npm run viewport && npm run posture"
   },
   "dependencies": {
-    "@emotion/react": "^11.14.0",
-    "@mantine/core": "^6.0.22",
-    "@mantine/dropzone": "^6.0.22",
-    "@mantine/hooks": "^6.0.22",
     "@tabler/icons-react": "^3.44.0",
     "@vercel/microfrontends": "^2.4.0",
     "axios": "^1.18.1",

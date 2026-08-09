@@ -1,162 +1,107 @@
-import { useState } from 'react';
-import {
-  createStyles,
-  Header,
-  Container,
-  Group,
-  Burger,
-  Paper,
-  Transition,
-  ActionIcon,
-  useMantineColorScheme,
-  rem,
-} from '@mantine/core';
-import { useDisclosure } from '@mantine/hooks';
-import { IconSun, IconMoonStars } from '@tabler/icons-react';
-import {Link} from "react-router-dom"
-const HEADER_HEIGHT = rem(83);
+import { useCallback, useState } from 'react';
+import { Link, NavLink } from 'react-router-dom';
+import { IconSun, IconMoonStars, IconMenu2, IconX } from '@tabler/icons-react';
 
-const useStyles = createStyles((theme) => ({
-  root: {
-    position: 'absolute',
-    zIndex: 1,
-  },
+// Sticky rather than the old `position: absolute` + `mb={120}` + `mt-20`
+// arrangement, which reserved space with magic numbers that only lined up at
+// one viewport width and left a gap everywhere else.
+export function SiteHeader({ links, theme, onToggleTheme }) {
+  const [open, setOpen] = useState(false);
 
-  dropdown: {
-    position: 'absolute',
-    top: HEADER_HEIGHT,
-    left: 0,
-    right: 0,
-    zIndex: 0,
-    borderTopRightRadius: 0,
-    borderTopLeftRadius: 0,
-    borderTopWidth: 0,
-    overflow: 'hidden',
-
-    [theme.fn.largerThan('sm')]: {
-      display: 'none',
-    },
-  },
-
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    height: '100%',
-  },
-
-  links: {
-    [theme.fn.smallerThan('sm')]: {
-      display: 'none',
-    },
-  },
-
-  burger: {
-    [theme.fn.largerThan('sm')]: {
-      display: 'none',
-    },
-  },
-
-  link: {
-    display: 'flex',
-    lineHeight: 1,
-    padding: `${rem(8)} ${rem(12)}`,
-    borderRadius: theme.radius.sm,
-    textDecoration: 'none',
-    color: theme.colorScheme === 'dark' ? theme.colors.dark[0] : theme.colors.gray[7],
-    fontSize: theme.fontSizes.sm,
-    fontWeight: 500,
-    fontFamily: "ui-monospace, 'Cascadia Mono', 'Segoe UI Mono', monospace",
-
-    '&:hover': {
-      backgroundColor: theme.colorScheme === 'dark' ? theme.colors.dark[6] : theme.colors.gray[0],
-    },
-
-    [theme.fn.smallerThan('sm')]: {
-      borderRadius: 0,
-      padding: theme.spacing.md,
-    },
-  },
-
-  linkActive: {
-    '&, &:hover': {
-      backgroundColor: 'rgba(220, 38, 38, 0.12)',
-      color: '#ef4444',
-    },
-  },
-}));
-
-// interface HeaderResponsiveProps {
-//   links: { link: string; label: string }[];
-// }
-
-export function HeaderResponsive({ links }) {
-  const [opened, { toggle, close }] = useDisclosure(false);
-  const [active, setActive] = useState(links[0].link);
-  const { classes, cx } = useStyles();
-  const { colorScheme, toggleColorScheme } = useMantineColorScheme();
-
-  const items = links.map((link) => (
-    <Link
-      key={link.label}
-      to={link.link}
-      className={cx(classes.link, { [classes.linkActive]: active === link.link })}
-      onClick={() => {
-        setActive(link.link);
-        close();
-      }}
-    >
-      <span style={{ color: '#ef4444', marginRight: 6 }}>$</span> {link.label}
-    </Link>
-  ));
+  // Closing on the link's own click rather than in an effect on the pathname:
+  // navigation is the event, so handling it directly avoids the extra
+  // render pass a setState-in-effect would cascade.
+  const close = useCallback(() => setOpen(false), []);
 
   return (
-    <Header
-      height={HEADER_HEIGHT}
-      mb={120}
-      className={classes.root}
-      sx={(theme) => ({
-        backgroundColor:
-          theme.colorScheme === 'dark' ? 'rgba(22, 23, 29, 0.85)' : 'rgba(255, 255, 255, 0.85)',
-        backdropFilter: 'blur(12px)',
-        borderBottom:
-          theme.colorScheme === 'dark'
-            ? '1px solid rgba(255, 255, 255, 0.08)'
-            : '1px solid rgba(0, 0, 0, 0.08)',
-      })}
-    >
-      <Container className={classes.header}>
-      <Link to={'/'} style={{ textDecoration: 'none', color: 'inherit', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-          <span className='had-mark'>HAD</span>
-          <span className='had-name'>
-            Human Anomaly Detection
-            <span className='had-sub'>real-time fall detection</span>
-          </span>
-      </Link>
-
-        <Group spacing={5} className={classes.links}>
-          {items}
-        </Group>
-
-        <ActionIcon
-          variant="outline"
-          color={colorScheme === 'dark' ? 'yellow' : 'blue'}
-          onClick={() => toggleColorScheme()}
-          title="Toggle color scheme"
+    <header className="sticky top-0 z-40 border-b border-line bg-canvas/85 backdrop-blur-md">
+      <div className="page-gutter flex h-16 items-center justify-between gap-3">
+        <Link
+          to="/"
+          // min-w/h-11: below xs the name is hidden and only the 40px mark
+          // remains, which is under the 44px touch minimum on its own.
+          className="flex items-center justify-center xs:justify-start gap-3 min-h-11 min-w-11 xs:min-w-0 no-underline text-inherit rounded-sm"
+          aria-label="Human Anomaly Detection — home"
         >
-          {colorScheme === 'dark' ? <IconSun size="1.1rem" /> : <IconMoonStars size="1.1rem" />}
-        </ActionIcon>
+          <span className="had-mark" aria-hidden="true">HAD</span>
+          {/* Below 400px the mark alone carries the brand: repeating "HAD" as
+              text beside a mark that already reads HAD was redundant, and the
+              full name crowds the two 44px controls at that width. */}
+          <span className="had-name hidden xs:flex flex-col">
+            Human Anomaly Detection
+            <span className="had-sub">real-time fall detection</span>
+          </span>
+        </Link>
 
-        <Burger opened={opened} onClick={toggle} className={classes.burger} size="sm" />
+        <div className="flex items-center gap-1">
+          <nav className="hidden sm:flex items-center gap-1" aria-label="Main">
+            {links.map((link) => (
+              <HeaderLink key={link.link} to={link.link} onClick={close}>
+                {link.label}
+              </HeaderLink>
+            ))}
+          </nav>
 
-        <Transition transition="pop-top-right" duration={200} mounted={opened}>
-          {(styles) => (
-            <Paper className={classes.dropdown} withBorder style={styles}>
-              {items}
-            </Paper>
-          )}
-        </Transition>
-      </Container>
-    </Header>
+          <button
+            type="button"
+            onClick={onToggleTheme}
+            className="grid h-11 w-11 place-items-center rounded-lg text-dim transition-colors duration-200 hover:text-head hover:bg-raise cursor-pointer"
+            aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+          >
+            {theme === 'dark' ? <IconSun size={20} /> : <IconMoonStars size={20} />}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            className="grid h-11 w-11 place-items-center rounded-lg text-dim transition-colors duration-200 hover:text-head hover:bg-raise cursor-pointer sm:hidden"
+            aria-label={open ? 'Close menu' : 'Open menu'}
+            aria-expanded={open}
+            aria-controls="header-menu"
+          >
+            {open ? <IconX size={20} /> : <IconMenu2 size={20} />}
+          </button>
+        </div>
+      </div>
+
+      {open && (
+        <nav
+          id="header-menu"
+          aria-label="Main"
+          className="sm:hidden border-t border-line bg-canvas page-gutter pb-3"
+        >
+          {links.map((link) => (
+            <HeaderLink key={link.link} to={link.link} onClick={close} block>
+              {link.label}
+            </HeaderLink>
+          ))}
+        </nav>
+      )}
+    </header>
+  );
+}
+
+// NavLink rather than the previous useState(links[0].link): that seeded "home"
+// as active on every load, so landing directly on /about highlighted the wrong
+// item until you clicked something.
+function HeaderLink({ to, children, onClick, block = false }) {
+  return (
+    <NavLink
+      to={to}
+      end={to === '/'}
+      onClick={onClick}
+      className={({ isActive }) =>
+        [
+          'font-mono text-sm no-underline transition-colors duration-200 cursor-pointer',
+          block
+            ? 'flex items-center min-h-11 px-1 border-b border-line/60 last:border-0'
+            : 'flex items-center h-11 px-3 rounded-lg',
+          isActive ? 'text-accent' : 'text-dim hover:text-head',
+        ].join(' ')
+      }
+    >
+      <span className="text-accent mr-1.5" aria-hidden="true">$</span>
+      {children}
+    </NavLink>
   );
 }

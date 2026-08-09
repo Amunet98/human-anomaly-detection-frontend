@@ -1,14 +1,17 @@
 import './App.css';
 import { FooterLinks } from './components/Footer/Footer';
-import { HeaderResponsive } from './components/Header/Header';
-import { Home } from "./components/Home/Home";
+import { SiteHeader } from './components/Header/Header';
+import { Home } from './components/Home/Home';
 import { About } from './components/AboutProject/AboutProject';
 import { ReferencePapers } from './components/ReferencePapers/ReferencePapers';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { MantineProvider, ColorSchemeProvider } from '@mantine/core';
-import { useLocalStorage } from '@mantine/hooks';
+import { useTheme } from './hooks/useTheme';
 
-const headerLinks = [{ link: '/', label: 'home' }, { link: '/about', label: 'about us' }];
+const headerLinks = [
+  { link: '/', label: 'home' },
+  { link: '/about', label: 'about' },
+  { link: '/refrence_papers', label: 'papers' },
+];
 
 // When served through the portfolio's microfrontends proxy at
 // bimeshpoudel.com.np/human-anomaly-live-demo, the URL keeps that prefix
@@ -22,44 +25,24 @@ const basename = window.location.pathname.startsWith(MICROFRONTENDS_BASE)
   : undefined;
 
 function App() {
-  const [colorScheme, setColorScheme] = useLocalStorage({
-    key: 'color-scheme',
-    defaultValue: 'dark',
-  });
-  const toggleColorScheme = (value) =>
-    setColorScheme(value || (colorScheme === 'dark' ? 'light' : 'dark'));
+  const { theme, toggleTheme } = useTheme();
 
   return (
-    <ColorSchemeProvider colorScheme={colorScheme} toggleColorScheme={toggleColorScheme}>
-      <MantineProvider theme={{ colorScheme }} withGlobalStyles withNormalizeCSS>
-        <Router basename={basename}>
-          <div
-            className={
-              colorScheme === 'dark'
-                ? 'min-h-screen bg-[#16171d] text-gray-50'
-                : 'min-h-screen bg-white text-gray-900'
-            }
-          >
-            <div className='head flex justify-center flex-col items-center'>
-              <div className='mb-12'>
-                <HeaderResponsive links={headerLinks} />
-              </div>
-              <hr className='mt-4' />
-            </div>
+    <Router basename={basename}>
+      <div className="min-h-dvh bg-canvas text-body flex flex-col">
+        <SiteHeader links={headerLinks} theme={theme} onToggleTheme={toggleTheme} />
 
-            <Routes>
-              <Route path='/' element={<Home />} />
-              <Route path='/about' element={<About />} />
-              <Route path='/refrence_papers' element={<ReferencePapers />} />
-            </Routes>
+        <main className="flex-1">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/refrence_papers" element={<ReferencePapers />} />
+          </Routes>
+        </main>
 
-            <div className='flex justify-center text-cyan-50'>
-              <FooterLinks />
-            </div>
-          </div>
-        </Router>
-      </MantineProvider>
-    </ColorSchemeProvider>
+        <FooterLinks />
+      </div>
+    </Router>
   );
 }
 

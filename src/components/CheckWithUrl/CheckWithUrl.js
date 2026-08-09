@@ -1,60 +1,11 @@
-import { useState } from 'react';
-import { TextInput, createStyles, Button, rem } from '@mantine/core';
+import { useId, useState } from 'react';
 import axios from 'axios';
 import { API_URL } from '../../lib/api';
 import { StillResult } from '../StillResult/StillResult';
 
-const useStyles = createStyles((theme, { floating }) => ({
-    root: {
-        position: 'relative',
-    },
-
-    label: {
-        position: 'absolute',
-        zIndex: 2,
-        top: rem(7),
-        left: theme.spacing.sm,
-        pointerEvents: 'none',
-        color: floating
-            ? theme.colorScheme === 'dark'
-                ? theme.white
-                : theme.black
-            : theme.colorScheme === 'dark'
-                ? theme.colors.dark[3]
-                : theme.colors.gray[5],
-        transition: 'transform 150ms ease, color 150ms ease, font-size 150ms ease',
-        transform: floating ? `translate(-${theme.spacing.sm}, ${rem(-28)})` : 'none',
-        fontSize: floating ? theme.fontSizes.xs : theme.fontSizes.sm,
-        fontWeight: floating ? 500 : 400,
-    },
-
-    required: {
-        transition: 'opacity 150ms ease',
-        opacity: floating ? 1 : 0,
-    },
-
-    input: {
-        '&::placeholder': {
-            transition: 'color 150ms ease',
-            color: !floating ? 'transparent' : undefined,
-        },
-    },
-
-    button: {
-        position: 'relative',
-        transition: 'background-color 150ms ease',
-    },
-
-    labelButton: {
-        position: 'relative',
-        zIndex: 1,
-    },
-}));
-
 export function CheckWithUrl({ onResult }) {
-    const [focused, setFocused] = useState(false);
+    const inputId = useId();
     const [value, setValue] = useState('');
-    const { classes } = useStyles({ floating: value.trim().length !== 0 || focused });
 
     const [preview, setPreview] = useState(null);
     const [detections, setDetections] = useState(null);
@@ -87,31 +38,39 @@ export function CheckWithUrl({ onResult }) {
 
     return (
         <div className='w-full max-w-md'>
-            <span className='text-center text-lg font-mono font-medium'>
-                Test using Url
-            </span>
-            <TextInput
-                label="URL"
-                placeholder="Put url of Photo to test"
-                required
-                classNames={classes}
+            <h3 className='font-mono text-sm font-medium text-head mb-3'>Paste an image URL</h3>
+
+            {/* A permanently visible label rather than the old floating one:
+                the placeholder was the only label until you focused the field,
+                so the input's purpose disappeared exactly when a screen reader
+                or a returning user needed it. */}
+            <label htmlFor={inputId} className='block font-mono text-[11px] uppercase tracking-widest text-dim mb-1.5'>
+                Image URL
+            </label>
+            <input
+                id={inputId}
+                type='url'
+                inputMode='url'
+                autoComplete='off'
+                spellCheck='false'
+                placeholder='https://example.com/photo.jpg'
                 value={value}
                 onChange={(event) => setValue(event.currentTarget.value)}
-                onFocus={() => setFocused(true)}
-                onBlur={() => setFocused(false)}
                 onKeyDown={(event) => event.key === 'Enter' && analyse()}
-                mt="md"
-                autoComplete="nope"
+                /* No focus:outline-none here - the global :focus-visible ring in
+                   index.css is the keyboard affordance, and the accent border is
+                   an addition to it rather than a replacement. */
+                className='w-full min-h-11 px-3 rounded-lg bg-raise border border-line text-head placeholder:text-dim transition-colors duration-200 hover:border-line-bright focus:border-accent'
             />
-            <Button
-                fullWidth
-                className="bg-green-500 hover:bg-green-500 text-gray-50 mt-2"
+
+            <button
+                type='button'
                 onClick={analyse}
-                loading={loading}
-                disabled={!value.trim()}
+                disabled={!value.trim() || loading}
+                className='w-full min-h-11 mt-3 rounded-lg bg-accent text-canvas font-mono text-sm font-semibold transition-opacity duration-200 cursor-pointer hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed'
             >
-                Check
-            </Button>
+                {loading ? 'Checking…' : 'Check'}
+            </button>
 
             <StillResult src={preview} detections={detections} loading={loading} error={error} />
         </div>

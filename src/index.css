@@ -1,5 +1,132 @@
 @import "tailwindcss";
 
-.body{
-  position: absolute;
+/* Design tokens are lifted verbatim from the portfolio
+   (portfolio/src/index.css). This demo is served *inside* that site at
+   bimeshpoudel.com.np/human-anomaly-live-demo through Vercel Microfrontends,
+   so it has to be the same design language, not merely a similar one. Change
+   these only in lockstep with the portfolio. */
+:root {
+  --page-gutter: clamp(1.25rem, 5vw, 4.5rem);
+
+  --bg: #0d0e12;
+  --bg-raise: #12141a;
+  --bg-titlebar: #171a21;
+  --text: #b6bdc9;
+  /* Deliberate divergence from the portfolio, which uses #6b7280 here.
+     Measured against this background that is 3.99:1, and 3.81:1 on --bg-raise
+     - under WCAG AA for normal text. It matters more here than on the
+     portfolio because this UI hangs a lot of 10-11px mono labels (stat
+     captions, control labels, HUD readouts) on this token, which is the
+     worst case for it. #7b838f is the smallest step that clears 4.5:1 on
+     both surfaces (5.04 and 4.81). The light theme's #6b7280 already passes
+     at 4.59, so it is left alone. */
+  --text-dim: #7b838f;
+  --text-h: #f3f4f6;
+  --accent: #f87171;
+  --accent-dim: rgba(248, 113, 113, 0.14);
+  --accent-glow: rgba(248, 113, 113, 0.35);
+  --ok: #4ade80;
+  --warn: #fbbf24;
+  --info: #60a5fa;
+  --border: #252a34;
+  --border-bright: #3a4150;
+  --term-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 18px 50px -20px rgba(0, 0, 0, 0.7);
+
+  --sans: "IBM Plex Sans", system-ui, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+
+  color-scheme: dark;
+}
+
+/* "Paper terminal" light theme — explicit opt-in via the header toggle only;
+   the terminal look stays dark by default regardless of OS preference. */
+:root[data-theme="light"] {
+  --bg: #faf9f6;
+  --bg-raise: #ffffff;
+  --bg-titlebar: #f0eee8;
+  --text: #4b5563;
+  --text-dim: #6b7280;
+  --text-h: #101318;
+  --accent: #dc2626;
+  --accent-dim: rgba(220, 38, 38, 0.08);
+  --accent-glow: rgba(220, 38, 38, 0.22);
+  --ok: #15803d;
+  --warn: #b45309;
+  --info: #1d4ed8;
+  --border: #e3e0d8;
+  --border-bright: #c8c3b6;
+  --term-shadow:
+    0 0 0 1px rgba(45, 40, 30, 0.05),
+    0 14px 40px -18px rgba(45, 40, 30, 0.3);
+
+  color-scheme: light;
+}
+
+/* `inline` is load-bearing: it makes Tailwind emit `var(--accent)` into the
+   utility rather than resolving the token to a literal at build time. Without
+   it the light-theme swap above would have no effect on any Tailwind class. */
+@theme inline {
+  --color-canvas: var(--bg);
+  --color-raise: var(--bg-raise);
+  --color-titlebar: var(--bg-titlebar);
+
+  --color-body: var(--text);
+  --color-dim: var(--text-dim);
+  --color-head: var(--text-h);
+
+  --color-accent: var(--accent);
+  --color-accent-dim: var(--accent-dim);
+  --color-ok: var(--ok);
+  --color-warn: var(--warn);
+  --color-info: var(--info);
+
+  --color-line: var(--border);
+  --color-line-bright: var(--border-bright);
+
+  --font-sans: var(--sans);
+  --font-mono: var(--mono);
+
+  /* Narrow phones (<400px) can't fit the full product name beside the mark. */
+  --breakpoint-xs: 25rem;
+
+  --shadow-term: var(--term-shadow);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+body {
+  font: 16px/1.7 var(--sans);
+  letter-spacing: 0.1px;
+  color: var(--text);
+  background: var(--bg);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+@media (max-width: 1024px) {
+  body {
+    font-size: 15.5px;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--bg);
 }

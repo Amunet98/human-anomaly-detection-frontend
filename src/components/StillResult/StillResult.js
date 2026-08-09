@@ -37,7 +37,7 @@ export function StillResult({ src, detections, loading, error }) {
 
   if (error) {
     return (
-      <p className="mt-4 font-mono text-sm text-red-500 break-words">{error}</p>
+      <p className="mt-4 font-mono text-sm text-accent break-words">{error}</p>
     );
   }
   if (!src) return null;
@@ -80,7 +80,7 @@ export function StillResult({ src, detections, loading, error }) {
               );
             })
           ) : (
-            <span className="font-mono text-xs opacity-55">
+            <span className="font-mono text-xs text-dim">
               No person detected above the confidence threshold.
             </span>
           )}

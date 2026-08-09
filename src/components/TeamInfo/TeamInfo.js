@@ -1,60 +1,58 @@
-import { createStyles, Avatar, Text, Group } from '@mantine/core';
-import { IconPhoneCall, IconAt } from '@tabler/icons-react';
+import { IconBrandGithub, IconMail, IconPhone } from '@tabler/icons-react';
 
-const useStyles = createStyles((theme) => ({
-  icon: {
-    color: theme.colorScheme === 'dark' ? theme.colors.dark[3] : theme.colors.gray[5],
-  },
+function initials(name) {
+  return name
+    .split(' ')
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0].toUpperCase())
+    .join('');
+}
 
-  name: {
-    fontFamily: `Greycliff CF, ${theme.fontFamily}`,
-  },
-}));
+export function TeamInfo({ name, title, phone, email, github }) {
+  // Initials rather than a photo. The two avatars this previously pointed at
+  // were both dead: one a LinkedIn CDN URL whose signature expired in 2023
+  // (`e=1694044800`), the other a bare "WhatsApp Image ....jpg" filename that
+  // was never in the bundle at all - so every visitor got two broken images.
+  // Initials can't rot.
+  const handle = github?.replace(/^https?:\/\/github\.com\//, '');
 
-// interface UserInfoIconsProps {
-//   avatar: string;
-//   name: string;
-//   title: string;
-//   phone: string;
-//   email: string;
-// }
-
-export function TeamInfo({ avatar, name, title, phone, email, github }) {
-  const { classes } = useStyles();
   return (
-    <div className='bg-gray-900 text-cyan-50 w-full max-w-80 rounded-xl p-3'>
-      <Group noWrap>
-        <Avatar src={avatar} size={94} radius="md" />
-        <div>
-          <Text fz="xs" tt="uppercase" fw={700} c="dimmed">
-            {title}
-          </Text>
+    <div className="w-full max-w-sm rounded-2xl border border-line bg-raise p-5 flex gap-4 items-start">
+      <span
+        className="grid h-16 w-16 flex-shrink-0 place-items-center rounded-xl bg-accent-dim border border-accent font-mono text-lg font-bold text-accent"
+        aria-hidden="true"
+      >
+        {initials(name)}
+      </span>
 
-          <Text fz="lg" fw={500} className={classes.name}>
-            {name}
-          </Text>
+      <div className="min-w-0">
+        <p className="font-mono text-[11px] uppercase tracking-widest text-dim">{title}</p>
+        <p className="text-lg font-semibold text-head mt-0.5">{name}</p>
 
-          <Group noWrap spacing={10} mt={3}>
-            <IconAt stroke={1.5} size="1rem" className={classes.icon} />
-            <Text fz="xs" c="dimmed">
-              {email}
-            </Text>
-          </Group>
-
-          <Group noWrap spacing={10} mt={5}>
-            <IconPhoneCall stroke={1.5} size="1rem" className={classes.icon} />
-            <Text fz="xs" c="dimmed">
-              {phone}
-            </Text>
-          </Group>
-          <Group noWrap spacing={10} mt={5}>
-            <IconPhoneCall stroke={1.5} size="1rem" className={classes.icon} />
-            <Text fz="xs" c="dimmed">
-              {github}
-            </Text>
-          </Group>
-        </div>
-      </Group>
+        <ul className="mt-3 space-y-1.5 text-sm">
+          <ContactRow icon={IconMail} href={`mailto:${email}`} label={email} />
+          <ContactRow icon={IconPhone} href={`tel:${phone}`} label={phone} />
+          {handle && (
+            <ContactRow icon={IconBrandGithub} href={github} label={handle} external />
+          )}
+        </ul>
+      </div>
     </div>
+  );
+}
+
+function ContactRow({ icon: Icon, href, label, external = false }) {
+  return (
+    <li>
+      <a
+        href={href}
+        {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+        className="inline-flex items-center gap-2 min-h-11 text-dim no-underline transition-colors duration-200 hover:text-accent break-all"
+      >
+        <Icon size={16} stroke={1.5} className="flex-shrink-0" aria-hidden="true" />
+        {label}
+      </a>
+    </li>
   );
 }
