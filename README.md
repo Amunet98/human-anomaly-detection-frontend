@@ -27,9 +27,18 @@ report. Upload and URL checks always go to the backend's `/analyze`.
 ## How detection works
 
 `best.onnx` is **COCO-pretrained yolov8n-pose, unmodified** — it detects one
-class (`person`) plus 17 keypoints. Nothing here was trained. The four
-postures are derived from keypoint geometry, which is why the model file and
-the label set are independent of each other.
+class (`person`) plus 17 keypoints. Nothing in the shipped pipeline was
+trained. The four postures are derived from keypoint geometry, which is why the
+model file and the label set are independent of each other.
+
+The version before this one was trained — yolov8n fine-tuned on 8,340 Roboflow
+images to predict the postures directly — and was replaced because measurement
+said so: 76.7% under perturbation, with a `sit` class that never missed and was
+wrong nearly half the time it fired, because it had learned the room rather
+than the body. Keypoint geometry has no equivalent shortcut available: a
+shoulder-to-hip angle is the same blurred, greyscaled or downscaled. The
+backend repo's [`training/MODEL_CARD.md`](../human-anomaly-detection-backend-main/training/MODEL_CARD.md)
+has the side-by-side.
 
 The pipeline lives in [`src/lib/detect/`](src/lib/detect/):
 
