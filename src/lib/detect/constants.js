@@ -6,7 +6,7 @@
 
 export const INPUT_SIZE = 640;
 
-// The posture vocabulary the whole app speaks: DetectionOverlay's CLASS_COLORS,
+// The posture vocabulary the whole app speaks: readout.js's CLASS_COLORS,
 // the tracker's votes, StillResult's badges, the backend's CLASS_NAMES env.
 //
 // Note this is NO LONGER the model's own class list. best.onnx is now

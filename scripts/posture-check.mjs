@@ -12,6 +12,7 @@
 
 import { classifyPosture, postureFeatures } from '../src/lib/detect/posture.js';
 import { KEYPOINT_NAMES, KP_CONF_THRESHOLD } from '../src/lib/detect/constants.js';
+import { postureReadout, CLASS_COLORS } from '../src/lib/detect/readout.js';
 
 let failures = 0;
 function check(ok, label, detail = '') {
@@ -315,6 +316,57 @@ console.log('\n=== degenerate input ===');
     'no keypoints at all does not throw or emit NaN',
     `${r.className} ${r.confidence}`,
   );
+}
+
+// What the *viewer* is told, which is a separate question from what the
+// classifier concluded. posture.js has to return some class at tier C/D so the
+// tracker has something to vote on, and it correctly returns the non-alarming
+// one - but showing that to a visitor as a confident `stand` is the system
+// claiming knowledge it does not have. Pinned here because the demo's own
+// framing (a laptop webcam, waist-up) makes tier C the most likely thing anyone
+// will actually see.
+console.log('\n=== how an indeterminate read is presented ===');
+{
+  const noKnees = skeleton({
+    leftShoulder: [92, 100], rightShoulder: [108, 100],
+    leftHip: [92, 200], rightHip: [108, 200],
+  });
+  const r = classifyPosture(noKnees, boxAround(noKnees), 0.9);
+  check(r.tier === 'C', 'waist-up crop is still tier C', `tier=${r.tier}`);
+  check(r.className === 'stand', 'classifier still emits the safe default', r.className);
+
+  const shown = postureReadout(r.tier, r.className, r.confidence);
+  check(shown.indeterminate === true, 'presented as indeterminate', shown.text);
+  check(!/STAND/.test(shown.text), 'does NOT show a confident STAND', shown.text);
+  check(!/%/.test(shown.text), 'no percentage beside a hedge', shown.text);
+  check(
+    shown.color !== CLASS_COLORS.stand,
+    'not painted in the confident stand colour',
+    shown.color.fill,
+  );
+
+  const noHips = skeleton({ leftShoulder: [92, 100], rightShoulder: [108, 100] });
+  const d = classifyPosture(noHips, boxAround(noHips), 0.9);
+  check(d.tier === 'D', 'no torso vector is tier D', `tier=${d.tier}`);
+  check(postureReadout(d.tier, d.className, d.confidence).indeterminate, 'tier D hedges too');
+
+  // The whole point of the hedge is that it never touches a real answer. A fall
+  // needs a torso vector, so it is always tier A and must render normally.
+  const lying = skeleton({
+    leftShoulder: [100, 200], rightShoulder: [100, 210],
+    leftHip: [200, 200], rightHip: [200, 210],
+  });
+  const fall = classifyPosture(lying, boxAround(lying), 0.9);
+  const fallShown = postureReadout(fall.tier, fall.className, fall.confidence);
+  check(fall.className === 'fall', 'lying figure is still a fall', `tier=${fall.tier}`);
+  check(!fallShown.indeterminate, 'a fall is NEVER hedged', fallShown.text);
+  check(/FALL/.test(fallShown.text) && /%/.test(fallShown.text), 'fall keeps its label and %', fallShown.text);
+
+  // A full-body read is unaffected.
+  const tall = upright();
+  const s = classifyPosture(tall, boxAround(tall), 0.9);
+  const sShown = postureReadout(s.tier, s.className, s.confidence);
+  check(!sShown.indeterminate, 'a tier-A stand is shown plainly', sShown.text);
 }
 
 console.log(failures === 0 ? '\nALL POSTURE CHECKS PASSED' : `\n${failures} POSTURE CHECK(S) FAILED`);

@@ -52,6 +52,11 @@ const CAMERA_API_ERROR = navigator.mediaDevices?.getUserMedia
     ? 'This browser does not expose a camera API.'
     : 'The camera needs a secure context — open this page over HTTPS.';
 
+// How long the top track must stay at tier C/D before the demo tells the viewer
+// to step back. Slightly above the tracker's 1.2s fall sustain: this is advice,
+// not an alarm, so it can afford to be the slower of the two.
+const INDETERMINATE_SUSTAIN_MS = 1500;
+
 // The backend returns boxes as [x1, y1, x2, y2]; the tracker works in objects.
 function normalizeServerDetections(detections = []) {
   return detections.map((d) => ({
@@ -66,6 +71,11 @@ function normalizeServerDetections(detections = []) {
     // joints with null coordinates rather than omitting them, so the array stays
     // index-aligned with KEYPOINT_EDGES either way.
     keypoints: d.keypoints ?? null,
+    // How much of the body the server's posture.js actually had. Without this
+    // the server engine would show a confident `stand` in exactly the waist-up
+    // framing where the browser engine hedges - the two engines are supposed to
+    // be indistinguishable to the viewer.
+    tier: d.tier ?? null,
   }));
 }
 
@@ -91,7 +101,17 @@ const LiveStream = ({ socket }) => {
   const [modelCached, setModelCached] = useState(false);
   const [events, setEvents] = useState([]);
   const [serverStats, setServerStats] = useState({ fps: 0, latency: 0 });
-  const [summary, setSummary] = useState({ state: null, confirmed: false, count: 0 });
+  const [summary, setSummary] = useState({
+    state: null,
+    confirmed: false,
+    count: 0,
+    legsHidden: false,
+  });
+
+  // When the top track first went indeterminate, or null if it isn't. A ref
+  // rather than state: it changes on every inference result and nothing renders
+  // from it directly.
+  const indeterminateSinceRef = useRef(null);
 
   const tracker = useMemo(() => new Tracker(), []);
   const smoother = useMemo(() => new BoxSmoother(), []);
@@ -142,10 +162,24 @@ const LiveStream = ({ socket }) => {
         (best, t) => (!best || t.confidence > best.confidence ? t : best),
         null,
       );
+
+      // Sustained, not instantaneous. Someone walking toward the lens clips to
+      // waist-up for a frame or two on the way in, and a coaching hint that
+      // blinks on and off is worse than no hint at all - the same reasoning that
+      // gives the tracker its 1.2s fall sustain.
+      const indeterminate = top?.tier === 'C' || top?.tier === 'D';
+      if (!indeterminate) {
+        indeterminateSinceRef.current = null;
+      } else if (indeterminateSinceRef.current === null) {
+        indeterminateSinceRef.current = now;
+      }
+
       setSummary({
         state: top?.state ?? null,
         confirmed: stillConfirmed.size > 0,
         count: tracks.length,
+        legsHidden:
+          indeterminate && now - indeterminateSinceRef.current >= INDETERMINATE_SUSTAIN_MS,
       });
     },
     [tracker, threshold],
@@ -177,7 +211,8 @@ const LiveStream = ({ socket }) => {
     tracker.reset();
     smoother.reset();
     confirmedRef.current = new Set();
-    setSummary({ state: null, confirmed: false, count: 0 });
+    indeterminateSinceRef.current = null;
+    setSummary({ state: null, confirmed: false, count: 0, legsHidden: false });
   }, [tracker, smoother]);
 
   const changeSource = useCallback(
@@ -317,7 +352,8 @@ const LiveStream = ({ socket }) => {
     };
     const onLegacy = (label) => {
       if (hasRichEvents || typeof label !== 'string') return;
-      setSummary({ state: label, confirmed: false, count: 1 });
+      // Legacy string events carry no tier, so no hedge can be made about them.
+      setSummary({ state: label, confirmed: false, count: 1, legsHidden: false });
     };
 
     socket.on('own-detection', onDetection);
@@ -404,9 +440,16 @@ const LiveStream = ({ socket }) => {
             </div>
 
             <div className="stage-safe-bottom absolute bottom-0 inset-x-0 flex items-end justify-between px-3 pointer-events-none">
+              {/* An alarm outranks advice, though in practice they cannot
+                  co-occur: the fall gate needs a torso vector, so a confirmed
+                  fall is always tier A. */}
               {summary.confirmed ? (
                 <div className="px-3 py-1.5 pebble-badge bg-red-600 text-white font-mono text-xs font-bold tracking-wider">
                   FALL CONFIRMED
+                </div>
+              ) : summary.legsHidden ? (
+                <div className="px-3 py-1.5 pebble-badge bg-black/70 text-white/90 font-mono text-[11px] tracking-wider backdrop-blur-sm">
+                  Knees not in frame — step back to read sit/stand
                 </div>
               ) : (
                 <span />

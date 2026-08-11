@@ -130,6 +130,12 @@ function newTrack(id, det, now) {
     // or smoothed: joints are per-frame evidence, and averaging them across a
     // window would draw a limb where the body never was.
     keypoints: det.keypoints ?? null,
+    // How much of the body the classifier actually had to work with. Display
+    // metadata only - never voted on, because its effect on the outcome is
+    // already baked into det.confidence via posture.js's tier discount. The
+    // overlay needs it to tell an indeterminate tier-C read apart from a
+    // genuine one, which the class string alone cannot express.
+    tier: det.tier ?? null,
     // What the tracker concluded over the vote window.
     state: det.className,
     confidence: det.confidence,
@@ -148,6 +154,7 @@ function observe(track, det, now) {
   track.rawClass = det.className;
   track.rawConfidence = det.confidence;
   track.keypoints = det.keypoints ?? null;
+  track.tier = det.tier ?? null;
 
   // The classifier's confidence already encodes how much evidence supported the
   // call - how far the torso cleared the fall boundary, and how much of the body

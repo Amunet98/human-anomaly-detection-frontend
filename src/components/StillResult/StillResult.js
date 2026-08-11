@@ -1,5 +1,6 @@
 import { useCallback, useRef } from 'react';
-import { DetectionOverlay, CLASS_COLORS } from '../DetectionOverlay/DetectionOverlay';
+import { DetectionOverlay } from '../DetectionOverlay/DetectionOverlay';
+import { postureReadout } from '../../lib/detect/readout';
 
 // Shows a single analysed image with its detections drawn on top.
 //
@@ -31,6 +32,7 @@ export function StillResult({ src, detections, loading, error }) {
         // already skips any edge with a missing endpoint, so they pass straight
         // through.
         keypoints: d.keypoints ?? null,
+        tier: d.tier ?? null,
       })),
     [detections],
   );
@@ -68,14 +70,17 @@ export function StillResult({ src, detections, loading, error }) {
         <div className="mt-3 flex flex-wrap gap-2">
           {detections?.length ? (
             detections.map((d, index) => {
-              const color = CLASS_COLORS[d.className] || CLASS_COLORS.stand;
+              // /analyze already returns `tier` per detection (inference.js), so
+              // the still path hedges an indeterminate read exactly like the live
+              // overlay does - same helper, no API change.
+              const readout = postureReadout(d.tier, d.className, d.confidence);
               return (
                 <span
                   key={`${d.className}-${index}`}
                   className="px-2.5 py-1 rounded font-mono text-[11px] tracking-wider text-white"
-                  style={{ backgroundColor: color.fill }}
+                  style={{ backgroundColor: readout.color.fill }}
                 >
-                  #{index + 1} {d.className.toUpperCase()} {Math.round(d.confidence * 100)}%
+                  #{index + 1} {readout.text}
                 </span>
               );
             })

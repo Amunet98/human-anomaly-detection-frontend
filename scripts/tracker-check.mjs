@@ -207,5 +207,31 @@ const FPS = 5, STEP = 1000 / FPS;
   check(!blinked, 'stays confirmed as confidence sags below the enter bar');
 }
 
+// --- 11. tier survives the track boundary ---
+{
+  console.log('\n=== 12. tier is carried through to the overlay ===');
+  const t = new Tracker();
+  const s = new BoxSmoother();
+  let now = STEP;
+  let tr = t.update([{ ...det('stand', 0.54, STAND), tier: 'C' }], now)[0];
+  check(tr.tier === 'C', 'a new track keeps the detection tier', `tier=${tr.tier}`);
+
+  now += STEP;
+  tr = t.update([{ ...det('stand', 0.9, STAND), tier: 'A' }], now)[0];
+  check(tr.tier === 'A', 'an updated track takes the newest tier', `tier=${tr.tier}`);
+
+  // live() and the smoother both spread the track, but the overlay reads its
+  // tracks through that pair rather than from update() - so the passthrough has
+  // to be checked at the end of the chain the UI actually uses.
+  const viaSmoother = s.sample(t.live(now), now)[0];
+  check(viaSmoother.tier === 'A', 'tier survives live() + BoxSmoother', `tier=${viaSmoother.tier}`);
+
+  // A detector that never sets tier (the legacy server event path) must not
+  // produce undefined and accidentally render as a hedge.
+  const t2 = new Tracker();
+  const bare = t2.update([det('stand', 0.9, STAND)], STEP)[0];
+  check(bare.tier === null, 'a tier-less detection yields null, not undefined', `tier=${bare.tier}`);
+}
+
 console.log(fails === 0 ? '\nALL TRACKER CHECKS PASSED' : `\n${fails} TRACKER CHECK(S) FAILED`);
 process.exit(fails ? 1 : 0);

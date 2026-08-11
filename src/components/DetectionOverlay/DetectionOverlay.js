@@ -6,17 +6,7 @@ import {
   sizeOverlayCanvas,
 } from '../../lib/detect/viewport';
 import { KEYPOINT_EDGES, KP_CONF_THRESHOLD } from '../../lib/detect/constants';
-
-// Severity, not decoration: red reads as the thing you're meant to notice, and
-// it's the portfolio's own accent. Amber and emerald are the two "nothing is
-// wrong" states.
-const CLASS_COLORS = {
-  fall: { stroke: '#f87171', fill: '#dc2626', text: '#ffffff' },
-  sit: { stroke: '#fbbf24', fill: '#b45309', text: '#ffffff' },
-  squat: { stroke: '#a78bfa', fill: '#6d28d9', text: '#ffffff' },
-  stand: { stroke: '#34d399', fill: '#047857', text: '#ffffff' },
-};
-const FALLBACK_COLOR = { stroke: '#94a3b8', fill: '#334155', text: '#ffffff' };
+import { CLASS_COLORS, postureReadout } from '../../lib/detect/readout';
 
 const FONT = '600 12px ui-monospace, SFMono-Regular, Menlo, monospace';
 
@@ -166,17 +156,22 @@ export function DetectionOverlay({ hostRef, sourceRef, getTracks, mirror = false
 
       const map = objectFitMap(sw, sh, cssW, cssH, fit);
       for (const track of getTracks()) {
-        const color = CLASS_COLORS[track.state] || FALLBACK_COLOR;
+        const readout = postureReadout(track.tier, track.state, track.confidence);
+        // A confirmed fall is always tier A - the fall gate needs a torso vector
+        // - so it can never collide with the indeterminate readout below. Kept
+        // explicit anyway: a fall must never be repainted as a hedge.
+        const color = track.fallConfirmed
+          ? CLASS_COLORS.fall
+          : readout.color;
         const box = sourceBoxToCss(track.box, map, { mirror, displayW: cssW });
 
         ctx.globalAlpha = track.opacity ?? 1;
         drawSkeleton(ctx, track.keypoints, map, color, { mirror, displayW: cssW });
         drawBrackets(ctx, box, color, track.fallConfirmed);
 
-        const pct = Math.round((track.confidence ?? 0) * 100);
         const label = track.fallConfirmed
-          ? `#${track.id} FALL CONFIRMED ${pct}%`
-          : `#${track.id} ${track.state.toUpperCase()} ${pct}%`;
+          ? `#${track.id} FALL CONFIRMED ${Math.round((track.confidence ?? 0) * 100)}%`
+          : `#${track.id} ${readout.text}`;
         drawLabel(ctx, box, label, color, cssW);
         ctx.globalAlpha = 1;
       }
@@ -197,5 +192,3 @@ export function DetectionOverlay({ hostRef, sourceRef, getTracks, mirror = false
     />
   );
 }
-
-export { CLASS_COLORS };
