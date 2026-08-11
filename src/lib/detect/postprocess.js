@@ -59,6 +59,14 @@ export function filterTinyBoxes(boxes) {
   return boxes.filter((b) => area(b) >= MIN_BOX_AREA_RATIO * maxArea);
 }
 
+// The superseded 3-class detector's own head order, frozen. It is deliberately
+// NOT CLASS_NAMES: that list is the live posture vocabulary and gained `squat`
+// at index 2, which is where the old weights emit `stand`. Indexing the old
+// model's output into the new list would silently relabel every stand as a
+// squat - and because this decoder is only exercised by eval-check.mjs scoring
+// the archived weights, nothing in the app would have surfaced it.
+const LEGACY_CLASS_NAMES = ['fall', 'sit', 'stand'];
+
 // Decodes YOLOv8's raw export output and maps boxes back to source-image pixels.
 // Port of inference.js:118-152.
 //
@@ -108,7 +116,7 @@ export function decodeYolov8(output, lb, confThreshold = DEFAULT_CONF_THRESHOLD)
   // smoother interpolates between results and wants the sub-pixel detail.
   return filterTinyBoxes(nms(boxes)).map((b) => ({
     classId: b.classId,
-    className: CLASS_NAMES[b.classId] ?? `class_${b.classId}`,
+    className: LEGACY_CLASS_NAMES[b.classId] ?? `class_${b.classId}`,
     confidence: b.score,
     x1: b.x1,
     y1: b.y1,

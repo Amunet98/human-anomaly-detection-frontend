@@ -13,6 +13,7 @@ import { KEYPOINT_EDGES, KP_CONF_THRESHOLD } from '../../lib/detect/constants';
 const CLASS_COLORS = {
   fall: { stroke: '#f87171', fill: '#dc2626', text: '#ffffff' },
   sit: { stroke: '#fbbf24', fill: '#b45309', text: '#ffffff' },
+  squat: { stroke: '#a78bfa', fill: '#6d28d9', text: '#ffffff' },
   stand: { stroke: '#34d399', fill: '#047857', text: '#ffffff' },
 };
 const FALLBACK_COLOR = { stroke: '#94a3b8', fill: '#334155', text: '#ffffff' };

@@ -224,6 +224,88 @@ console.log('\n=== a fall still outranks a tier-C guess ===');
   );
 }
 
+console.log('\n=== squat ===');
+{
+  // Real keypoints, from corpus-2023/images/fall_1091.jpg - a bystander crouched
+  // beside someone on the ground. Kept as measured rather than idealised: the
+  // point of a real skeleton here is that it carries the asymmetry and the
+  // imperfect joint placement a hand-built one would smooth away.
+  const crouch = skeleton({
+    leftShoulder: [142, 203], rightShoulder: [184, 243],
+    leftHip: [46, 435], rightHip: [70, 456],
+    leftKnee: [210, 451], rightKnee: [226, 492],
+    leftAnkle: [83, 541], rightAnkle: [101, 605],
+  });
+  const f = postureFeatures(crouch, boxAround(crouch));
+  check(f.kneeAngle < 130, 'crouch: knee is deeply bent', `${f.kneeAngle.toFixed(0)}deg`);
+  check(
+    f.hipAnkleDrop >= 0.3 && f.hipAnkleDrop < 1.0,
+    'crouch: hips sit low over the ankles',
+    `hipAnkleDrop=${f.hipAnkleDrop.toFixed(2)}`,
+  );
+  check(f.stanceOffset < 0.5, 'crouch: feet stay under the hips', `stanceOffset=${f.stanceOffset.toFixed(2)}`);
+  const r = classifyPosture(crouch, boxAround(crouch), 0.9);
+  check(r.className === 'squat', 'classified as SQUAT', `${r.className} ${r.confidence.toFixed(2)} — ${r.reason}`);
+
+  // The gate needs all three leg features, so it must be unreachable without
+  // ankles. A waist-up crouch is geometrically identical to a chair-sit and has
+  // to answer `sit`, not guess `squat` - the tier-B discount is the honest reply.
+  const noAnkles = skeleton({
+    leftShoulder: [142, 203], rightShoulder: [184, 243],
+    leftHip: [46, 435], rightHip: [70, 456],
+    leftKnee: [210, 451], rightKnee: [226, 492],
+  });
+  const rB = classifyPosture(noAnkles, boxAround(noAnkles), 0.9);
+  check(rB.tier === 'B', 'crouch without ankles is tier B', `tier=${rB.tier}`);
+  check(rB.className !== 'squat', 'tier B never emits squat', `${rB.className}`);
+
+  // REGRESSION: hipAnkleDrop is signed, and without a floor the gate accepted
+  // bodies with the ankles ABOVE the hips - sprawled on the ground, legs up.
+  // Found in the wild on corpus image fall25.jpg, which came back
+  // `knee 128deg, hips -2.36 over ankles`. A fall relabelled squat is a missed
+  // alarm, which is why this is a floor and not a cosmetic bound.
+  const inverted = skeleton({
+    leftShoulder: [100, 300], rightShoulder: [120, 300],
+    leftHip: [104, 400], rightHip: [116, 400],
+    leftKnee: [150, 330], rightKnee: [160, 340],
+    leftAnkle: [140, 180], rightAnkle: [150, 190],
+  });
+  const fi = postureFeatures(inverted, boxAround(inverted));
+  check(fi.hipAnkleDrop < 0, 'inverted figure has ankles above hips', `hipAnkleDrop=${fi.hipAnkleDrop.toFixed(2)}`);
+  const ri = classifyPosture(inverted, boxAround(inverted), 0.9);
+  check(ri.className !== 'squat', 'ankles above hips is never a squat', `${ri.className}`);
+
+  // A standing figure must not be pulled in: its feet are under its hips too, so
+  // stanceOffset alone cannot exclude it - kneeAngle and hipAnkleDrop must.
+  const tall = upright();
+  const rs = classifyPosture(tall, boxAround(tall), 0.9);
+  check(rs.className === 'stand', 'an upright figure is still STAND', `${rs.className}`);
+}
+
+console.log('\n=== kneeling reads as a fall ===');
+{
+  // Shin foreshortened far past anything an in-plane leg produces: the shin
+  // points at the lens. This is the on-all-fours case that torsoAngle misses
+  // because the torso is still upright - measured on corpus image fall084.jpg,
+  // an elderly man down on his hands and knees at thighShinRatio 5.07.
+  const kneeling = skeleton({
+    leftShoulder: [92, 100], rightShoulder: [108, 100],
+    leftHip: [92, 200], rightHip: [108, 200],
+    leftKnee: [92, 300], rightKnee: [108, 300],
+    leftAnkle: [94, 318], rightAnkle: [106, 318],
+  });
+  const f = postureFeatures(kneeling, boxAround(kneeling));
+  check(f.thighShinRatio >= 2.5, 'shin is foreshortened past 2.5x', `thigh/shin=${f.thighShinRatio.toFixed(2)}`);
+  check(f.torsoAngle < 50, 'torso alone would NOT call this a fall', `${f.torsoAngle.toFixed(1)}deg`);
+  const r = classifyPosture(kneeling, boxAround(kneeling), 0.9);
+  check(r.className === 'fall', 'classified as FALL', `${r.className} ${r.confidence.toFixed(2)} — ${r.reason}`);
+
+  // The ordinary in-plane leg must stay well clear of the gate.
+  const tall = upright();
+  const ft = postureFeatures(tall, boxAround(tall));
+  check(ft.thighShinRatio < 2.5, 'an upright leg is nowhere near the gate', `thigh/shin=${ft.thighShinRatio.toFixed(2)}`);
+}
+
 console.log('\n=== degenerate input ===');
 {
   const kps = skeleton({});

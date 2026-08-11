@@ -11,10 +11,18 @@ export const INPUT_SIZE = 640;
 //
 // Note this is NO LONGER the model's own class list. best.onnx is now
 // COCO-pretrained yolov8n-pose, which detects a single class (`person`) and
-// 17 keypoints; the three postures are derived from keypoint geometry in
+// 17 keypoints; the four postures are derived from keypoint geometry in
 // posture.js. The old 3-class detector put these labels in its own head, and
 // learned scene shortcuts doing it - see MODEL_CARD.md.
-export const CLASS_NAMES = ['fall', 'sit', 'stand'];
+//
+// `squat` is emitted at tier A only - it needs the ankles - so a waist-up frame
+// answers `sit`, never `squat`. Adding it here does not change what the model
+// outputs, only what the geometry layer can name.
+//
+// Order matters beyond display: postprocess.js's decodeYolov8 indexes the
+// *archived* 3-class weights and therefore keeps its own frozen LEGACY_CLASS_NAMES.
+// Do not merge the two.
+export const CLASS_NAMES = ['fall', 'sit', 'squat', 'stand'];
 
 // COCO keypoint order, as emitted by ultralytics' pose head.
 export const KEYPOINT_NAMES = [

@@ -11,5 +11,18 @@
     "note": "REGRESSION CASE: three people - two seated, one standing behind the sofa with her legs hidden. Her knees are the model guessing; at KP_CONF_THRESHOLD 0.5 one scored exactly 0.50 here and 0.42 in the near-identical b, flipping her between sit and stand across the pair. KEEP AT NATIVE 2048x1537 - downscaling to 960px moves that knee's confidence off the boundary and the fixture silently stops reproducing the bug it exists to guard" },
   { "file": "lodge-group-b.jpg", "expected": "sit", "expectedAll": ["sit", "sit", "stand"],
     "consistentWith": "lodge-group-a.jpg",
-    "note": "near-identical reshoot of a; the pair must agree" }
+    "note": "near-identical reshoot of a; the pair must agree" },
+
+  { "file": "rail-fall-with-crouchers.jpg", "expected": "fall",
+    "note": "HARD NEGATIVE: man lying beside a railway track, two soldiers crouched over him, one bystander standing. The crouches must not outrank the fall in the top-1 reduction - inference.js ranks any `fall` first, and this is what pins that. Also the first fixture exercising the squat class. From the 2023 corpus (Roboflow fallsdata2, CC BY 4.0), 640x640 as exported" },
+  { "file": "street-fall-with-crouchers.jpg", "expected": "fall",
+    "note": "HARD NEGATIVE: woman down on a street, police officer squatting beside her, bystanders bending and standing. Same property as the rail fixture on a different scene - a crouching bystander is the single most common false-fall shape in this domain, and posture.js's AMBIGUOUS_TORSO_ANGLE band had no fixture at all before these two. CC BY 4.0" },
+
+  { "file": "court-fall-overhead.jpg", "expected": "fall",
+    "note": "Badminton player flat on her back, shot from directly overhead, knees drawn up. Her torso runs vertically in the image so torsoAngle reads 10deg - upright - and every leg feature said `sit` until the kneeling gate (thighShinRatio >= 2.5) was added. This is the fixture that proves that gate earns its keep. CC BY 4.0" },
+
+  { "file": "prone-fall-view-axis.jpg", "expected": "fall",
+    "note": "KNOWN GAP - EXPECTED TO FAIL. Man face-down on a floor, lying along the camera's view axis. torsoAngle 2.5deg, kneeDrop 1.14, kneeAngle 168deg, thighShinRatio 1.29: every feature reads as a standing person, and the aspect>=1.5 escape hatch misses because the box is narrow (0.45). MODEL_CARD predicted exactly this - 'a fall that is both foreshortened and narrow-boxed will still be missed'. Kept as a failing fixture on purpose: it is the boundary of what 2D keypoint geometry can express, and it should stay visible in the accuracy number rather than be quietly excluded. CC BY 4.0" },
+  { "file": "bus-fall-obscured.jpg", "expected": "fall",
+    "note": "KNOWN GAP - EXPECTED TO FAIL. Person on the ground beside a bus with three people crouched over them. The pose model never detects the fallen subject at all - it finds the three crouchers and two bystanders and nothing else - so this is a *detection* miss, not a posture miss, and no change to posture.js can fix it. Distinguishing it from prone-fall-view-axis is the point of keeping both. CC BY 4.0" }
 ]

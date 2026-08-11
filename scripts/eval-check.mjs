@@ -54,7 +54,7 @@ const require = createRequire(BACKEND + '/');
 const sharp = require('sharp');
 const { analyzeBuffer } = require(path.join(BACKEND, 'inference'));
 
-const CLASSES = ['fall', 'sit', 'stand'];
+const CLASSES = ['fall', 'sit', 'squat', 'stand'];
 const AUGMENT = process.argv.includes('--augment');
 
 const labels = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'labels.json'), 'utf8'));
@@ -104,7 +104,7 @@ const PERTURBATIONS = {
 function newMatrix() {
   const m = {};
   for (const truth of CLASSES) {
-    m[truth] = { fall: 0, sit: 0, stand: 0, none: 0 };
+    m[truth] = Object.fromEntries([...CLASSES.map((c) => [c, 0]), ['none', 0]]);
   }
   return m;
 }
@@ -129,7 +129,11 @@ function report(matrix, title) {
     const precision = tp + fp ? tp / (tp + fp) : 0;
     const recall = tp + fn ? tp / (tp + fn) : 0;
     const f1 = precision + recall ? (2 * precision * recall) / (precision + recall) : 0;
-    f1s.push(f1);
+    // A class with no ground-truth rows contributes nothing to macro-F1. Left in,
+    // an unfixtured class scores 0 and drags the average down by 1/|CLASSES| -
+    // adding `squat` to CLASS_NAMES alone moved this from 1.000 to 0.750 while
+    // every actual prediction was unchanged. Absent is not the same as wrong.
+    if (tp + fn > 0) f1s.push(f1);
     totalCorrect += tp;
     total += tp + fn;
     console.log(
@@ -138,9 +142,12 @@ function report(matrix, title) {
     );
   }
   const acc = total ? totalCorrect / total : 0;
-  const macroF1 = f1s.reduce((a, b) => a + b, 0) / f1s.length;
+  const macroF1 = f1s.length ? f1s.reduce((a, b) => a + b, 0) / f1s.length : 0;
+  const absent = CLASSES.length - f1s.length;
   console.log(
-    `\n  accuracy ${totalCorrect}/${total} = ${(acc * 100).toFixed(1)}%   macro-F1 ${macroF1.toFixed(3)}`,
+    `\n  accuracy ${totalCorrect}/${total} = ${(acc * 100).toFixed(1)}%   ` +
+      `macro-F1 ${macroF1.toFixed(3)}` +
+      (absent ? `  (over ${f1s.length} of ${CLASSES.length} classes; ${absent} unfixtured)` : ''),
   );
   return { acc, macroF1 };
 }
