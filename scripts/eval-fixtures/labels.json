@@ -14,9 +14,11 @@
     "note": "near-identical reshoot of a; the pair must agree" },
 
   { "file": "rail-fall-with-crouchers.jpg", "expected": "fall",
-    "note": "HARD NEGATIVE: man lying beside a railway track, two soldiers crouched over him, one bystander standing. The crouches must not outrank the fall in the top-1 reduction - inference.js ranks any `fall` first, and this is what pins that. Also the first fixture exercising the squat class. From the 2023 corpus (Roboflow fallsdata2, CC BY 4.0), 640x640 as exported" },
+    "expectedAll": ["fall", "sit", "squat", "stand", "stand"],
+    "note": "HARD NEGATIVE: man lying beside a railway track, two soldiers crouched over him, one bystander standing. The crouches must not outrank the fall in the top-1 reduction - inference.js ranks any `fall` first, and this is what pins that. From the 2023 corpus (Roboflow fallsdata2, CC BY 4.0), 640x640 as exported. expectedAll added 2026-08-12: one soldier reads `squat` at tier A (knee 78deg, hips 0.81 over ankles) and this is the ONLY assertion of a correct squat anywhere in the harness - top-1 cannot express it, because the fall correctly outranks it. Not a substitute for a clean single-subject squat fixture, which the class still lacks" },
   { "file": "street-fall-with-crouchers.jpg", "expected": "fall",
-    "note": "HARD NEGATIVE: woman down on a street, police officer squatting beside her, bystanders bending and standing. Same property as the rail fixture on a different scene - a crouching bystander is the single most common false-fall shape in this domain, and posture.js's AMBIGUOUS_TORSO_ANGLE band had no fixture at all before these two. CC BY 4.0" },
+    "expectedAll": ["fall", "squat", "stand", "stand", "stand"],
+    "note": "HARD NEGATIVE: woman down on a street, police officer squatting beside her, bystanders bending and standing. Same property as the rail fixture on a different scene - a crouching bystander is the single most common false-fall shape in this domain, and posture.js's AMBIGUOUS_TORSO_ANGLE band had no fixture at all before these two. CC BY 4.0. expectedAll added 2026-08-12: the officer is the harness's second asserted squat (knee 58deg, hips 0.56 over ankles). Two of the five reads are tier D - bystanders with no visible torso - and are pinned deliberately: they are what a change to NMS or the person floor would disturb first" },
 
   { "file": "court-fall-overhead.jpg", "expected": "fall",
     "note": "Badminton player flat on her back, shot from directly overhead, knees drawn up. Her torso runs vertically in the image so torsoAngle reads 10deg - upright - and every leg feature said `sit` until the kneeling gate (thighShinRatio >= 2.5) was added. This is the fixture that proves that gate earns its keep. CC BY 4.0" },

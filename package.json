@@ -12,6 +12,7 @@
     "tracker": "node scripts/tracker-check.mjs",
     "viewport": "node scripts/viewport-check.mjs",
     "posture": "node scripts/posture-check.mjs",
+    "fixture": "node scripts/add-fixture.mjs",
     "eval": "node scripts/eval-check.mjs",
     "eval:robust": "node scripts/eval-check.mjs --augment",
     "check": "npm run tracker && npm run viewport && npm run posture"

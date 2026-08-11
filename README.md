@@ -83,6 +83,11 @@ npm run dev
 - `npm run check` — the standard pre-commit suite: `tracker` + `viewport` + `posture`
 - `npm run parity` — asserts the browser and server `posture.js` agree
 - `npm run eval` / `npm run eval:robust` — accuracy against the labelled fixtures
+- `npm run fixture -- <image> --expect <class>` — vet a candidate fixture before
+  adopting it: runs the real pipeline plus the harness's own six perturbations,
+  reports tier and per-person reads, suggests the `expectedAll` line for a
+  multi-subject frame, and refuses to stage anything that does not hold. Add
+  `--write` to copy it into `eval-fixtures/` and append to `labels.json`
 
 `check` is the one to run routinely. `parity` and `eval` need the sibling
 backend repo checked out next to this one, which is why they're excluded

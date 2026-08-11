@@ -38,6 +38,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { PERTURBATIONS } from './lib/perturbations.mjs';
 
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const FRONTEND = path.resolve(HERE, '..');
@@ -82,24 +83,6 @@ async function predictAll(buffer) {
   const { detections } = await analyzeBuffer(buffer);
   return detections.map((d) => d.className).sort();
 }
-
-// The six perturbations. Chosen to be things a real deployment hits - a mirrored
-// front camera, a night-mode frame, motion blur, a low-bitrate stream, a
-// subject who does not fill the frame - not adversarial noise.
-const PERTURBATIONS = {
-  hflip: (img) => img.flop(),
-  grayscale: (img) => img.grayscale(),
-  'dark-40%': (img) => img.modulate({ brightness: 0.6 }),
-  'blur-3px': (img) => img.blur(3),
-  'downscale-320': (img) => img.resize(320),
-  'crop-80%': (img, meta) =>
-    img.extract({
-      left: Math.round(meta.width * 0.1),
-      top: Math.round(meta.height * 0.1),
-      width: Math.round(meta.width * 0.8),
-      height: Math.round(meta.height * 0.8),
-    }),
-};
 
 function newMatrix() {
   const m = {};
