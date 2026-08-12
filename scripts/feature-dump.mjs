@@ -1,7 +1,12 @@
 // Measures the raw geometric features posture.js decides on, across the whole
 // 2023 corpus, and reports their distribution per ground-truth class.
 //
-// Run with:  node scripts/feature-dump.mjs [--limit N] [--out FILE]
+// Run with:  node scripts/feature-dump.mjs [--limit N] [--out FILE] [--keypoints]
+//
+// With --keypoints it doubles as a training-set exporter: every row gains the
+// raw 17-joint pose, which is the input a keypoints -> posture classifier would
+// learn from. See the KEYPOINTS constant below for the row shape and for the
+// one trap in consuming it (occluded joints are null, not zero).
 //
 // Why this exists: every threshold in posture.js is currently justified by five
 // to eight measured values, quoted inline in its comments. That was honest at
@@ -64,6 +69,22 @@ const argOf = (flag, fallback) => {
 };
 const LIMIT = Number(argOf('--limit', 0));
 const OUT = path.resolve(argOf('--out', path.join(CORPUS, 'features.jsonl')));
+
+// --keypoints appends the raw 17-joint pose to every row, which is what a
+// keypoints -> posture classifier trains on. Opt-in rather than default for two
+// reasons: the analysis scripts beside this one read the existing row shape, and
+// the keypoints roughly triple the file.
+//
+// Emitted as [x, y, c] triples in COCO index order (KEYPOINT_NAMES in
+// constants.js), not as named objects - 17 names repeated 9,331 times is most of
+// the file for no information.
+//
+// **Occluded joints keep their null coordinates.** Do not coerce them to 0 when
+// consuming this: 0 is a legitimate image coordinate, so a null-to-zero
+// conversion silently teaches a model that unseen joints live in the top-left
+// corner. Either mask them or carry the confidence as an input channel - the
+// confidence is what says whether the coordinate means anything.
+const KEYPOINTS = process.argv.includes('--keypoints');
 
 // A detection is assigned the class of the ground-truth box it overlaps most,
 // and only if that overlap is convincing. 0.5 is the conventional floor and is
@@ -276,6 +297,17 @@ for (let i = 0; i < work.length; i++) {
         FEATURES.map((k) => [k, f[k] === null || f[k] === undefined ? null : Number(f[k].toFixed(4))]),
       ),
     };
+    if (KEYPOINTS) {
+      // Raw image coordinates, deliberately not normalised. Normalisation is a
+      // modelling choice - by box, by torso length, by image - and baking one in
+      // here would force it on every consumer. `box` is on the row already, so
+      // any of them can be recovered.
+      row.kp = kps.map((k) => [
+        k.x === null ? null : Number(k.x.toFixed(1)),
+        k.y === null ? null : Number(k.y.toFixed(1)),
+        k.confidence,
+      ]);
+    }
     rows.push(row);
     out.write(JSON.stringify(row) + '\n');
   }
