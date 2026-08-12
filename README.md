@@ -13,6 +13,12 @@ point your camera at someone and it labels their posture — `fall`, `sit`,
 `squat`, `stand` — with tracked boxes and a skeleton overlay, plus
 upload/URL image checks.
 
+This began as my **final-year engineering project** and has since been rebuilt
+rather than left as it was submitted: the trained 3-class detector it
+originally shipped with was replaced, on evidence, by a pretrained pose model
+plus a posture classifier written over its keypoint geometry. What changed and
+why is in the [backend README](https://github.com/Amunet98/human-anomaly-detection-backend).
+
 **Detection can run entirely in your browser.** The live view has two
 engines, switchable in the UI:
 
