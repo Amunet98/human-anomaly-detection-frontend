@@ -108,6 +108,12 @@ blur-3px, downscale-320w and centre-crop-80%. Per-class under perturbation:
 `fall` P=1.000 R=0.750, `sit` P=1.000 R=1.000, `stand` P=0.750 R=1.000,
 `squat` P=0.769 R=0.833.
 
+**`squat`'s R=0.833 is flattering.** All four of its fixtures are one person
+doing textbook gym squats; measured against the 4,924-image corpus the gate
+catches **48.1%** of ground-truth squats. That is deliberate — widening it
+costs about nine falls misread as `squat` per extra squat gained, and a fall
+read as `squat` is a missed alarm. See MODEL_CARD.
+
 **macro-F1 now covers all four classes.** The previous 0.905 spanned only
 three — `squat` had no fixture and was excluded — so the two figures are not
 comparable. Adding a fourth, harder class lowers the average while making it
