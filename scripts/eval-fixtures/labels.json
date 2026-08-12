@@ -33,5 +33,17 @@
 
   { "file": "dojo-two-stand.jpg", "expected": "stand",
     "expectedAll": ["stand", "stand"],
-    "note": "Two men standing on a dojo mat, both full-body, camera near floor height. Added for camera-height diversity - MODEL_CARD identifies elevation as the largest systematic source of missed falls, and before this every stand fixture was eye-level. expectedAll pins both, so a regression that drops or misreads the second subject cannot hide behind top-1. Survives 6/6. Same source and licence caveat as dojo-fall-wide-box.jpg" }
+    "note": "Two men standing on a dojo mat, both full-body, camera near floor height. Added for camera-height diversity - MODEL_CARD identifies elevation as the largest systematic source of missed falls, and before this every stand fixture was eye-level. expectedAll pins both, so a regression that drops or misreads the second subject cannot hide behind top-1. Survives 6/6. Same source and licence caveat as dojo-fall-wide-box.jpg" },
+
+  { "file": "squat-front.jpg", "expected": "squat",
+    "note": "FIRST TRUE POSITIVE FOR `squat`. Deep bodyweight squat, front-on, full body with both ankles visible - the squat gate is tier-A only, so a fixture without ankles would test the sit fallback instead. knee 58deg, hips 0.95 over ankles, conf 0.56. Before these the class appeared in the confusion matrix only as a false positive and was excluded from macro-F1 entirely. Survives 5/6 (fails downscale-320). Supplied by the repo owner as one panel of an 8-panel gym contact sheet, cropped to 304x336; provenance not independently verified" },
+
+  { "file": "squat-back-deep.jpg", "expected": "squat",
+    "note": "Same squat from behind, and the deepest of the set - knee 16.6deg, thigh only 0.17x its own shin. That thigh ratio is far under SIT_THIGH_FORESHORTEN (0.75), so this fixture is what pins the *gate ordering*: the squat gate runs before the thigh gate precisely so a deep crouch is not claimed as a sit first, and MODEL_CARD records that reversing them costs 24 crouches. Reverse the order and this fixture goes red. Survives 6/6" },
+
+  { "file": "squat-side.jpg", "expected": "squat",
+    "note": "Same squat in profile. knee 67deg, hips 0.79 over ankles, conf 0.47 - the lowest-confidence pass in the set, so it is also the closest thing the harness has to a squat confidence floor. Survives 6/6. Side-on matters because the front and back views foreshorten the thigh while this one does not, so the three together exercise the gate with the thigh in and out of the image plane" },
+
+  { "file": "squat-ceiling-gap.jpg", "expected": "squat",
+    "note": "KNOWN GAP - EXPECTED TO FAIL. Same squat, three-quarter view, returns `sit` at 0.76. A genuine deep squat that misses the squat gate on its UPPER bound: hipAnkleDrop is 1.05 against a SQUAT_HIP_ANKLE_DROP ceiling of 1.0, so it falls through to the thigh gate (0.51x shin) and reads sit. Measured 2026-08-12, the ceiling should NOT be raised to fix this: moving 1.0 -> 1.05 newly claims 27 corpus detections of which only 3 are real squats and 7 are falls, and a fall relabelled `squat` is a missed alarm. Kept failing to make that trade visible - the next person to see a squat read as `sit` will want to move that number, and this fixture is the argument against it. Note it is a knife-edge, not a clean miss: it fails clean, grayscale, dark-40% and downscale-320, but PASSES hflip, blur-3px and crop-80%, because those nudge the keypoints just far enough to put hipAnkleDrop back under 1.0. A fixture that flips on a 0.05 margin is the honest picture of a threshold boundary" }
 ]

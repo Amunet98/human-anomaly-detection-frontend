@@ -95,27 +95,30 @@ from it.
 
 ## Accuracy
 
-From `npm run eval:robust`, measured 2026-08-12 against the 15 labelled
+From `npm run eval:robust`, measured 2026-08-12 against the 19 labelled
 fixtures in `scripts/eval-fixtures/`:
 
 | | clean | perturbed |
 |---|---|---|
-| accuracy | **13/15 (86.7%)** | **78/90 (86.7%)** |
-| macro-F1 | 0.905 | 0.905 |
+| accuracy | **16/19 (84.2%)** | **98/114 (86.0%)** |
+| macro-F1 | 0.838 | 0.859 |
 
 "Perturbed" replays every fixture through hflip, grayscale, darken-40%,
 blur-3px, downscale-320w and centre-crop-80%. Per-class under perturbation:
-`fall` P=1.000 R=0.750, `sit` P=1.000 R=1.000, `stand` P=0.750 R=1.000.
-`squat` has no single-subject fixture and is excluded from macro-F1 — it's
-pinned by unit tests in `posture-check.mjs` and by `expectedAll` on the two
-croucher fixtures.
+`fall` P=1.000 R=0.750, `sit` P=1.000 R=1.000, `stand` P=0.750 R=1.000,
+`squat` P=0.769 R=0.833.
 
-Survival is **13/15 on every one of the six perturbations** — all 12 failing
-trials are the two KNOWN GAP fixtures replayed six times, and nothing else
-flips under any of them.
+**macro-F1 now covers all four classes.** The previous 0.905 spanned only
+three — `squat` had no fixture and was excluded — so the two figures are not
+comparable. Adding a fourth, harder class lowers the average while making it
+mean more.
 
-**Do not read 86.7% as a deployment accuracy.** The fixtures were chosen
-*because* they were failure candidates — two are labelled KNOWN GAP and are
+Three fixtures are labelled KNOWN GAP and are expected to fail: two falls that
+2D geometry cannot express, and one squat sitting 0.05 the wrong side of a
+threshold whose alternative costs fall recall.
+
+**Do not read 86.0% as a deployment accuracy.** The fixtures were chosen
+*because* they were failure candidates — three are labelled KNOWN GAP and are
 expected to fail — so the set is adversarial by construction, not
 representative. Its job is to fail when the classifier regresses, and an
 earlier 8-image set was retired precisely because it could no longer do that.
