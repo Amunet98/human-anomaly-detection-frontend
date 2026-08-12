@@ -318,6 +318,71 @@ console.log('\n=== degenerate input ===');
   );
 }
 
+// Knees above hips is never a sit. Found 2026-08-12 by replaying a dojo video:
+// a man flat on his back read `sit` at 0.77 because his torso angle (25deg) sat
+// under the fall gate and a negative kneeDrop is trivially under STAND_KNEE_DROP.
+console.log('\n=== a body on its back is not seated ===');
+{
+  // Knees drawn up well above the hips, torso not horizontal enough to trip the
+  // main fall gate on its own.
+  const onBack = skeleton({
+    leftShoulder: [100, 200], rightShoulder: [112, 202],
+    leftHip: [140, 240], rightHip: [152, 242],
+    leftKnee: [150, 160], rightKnee: [162, 162],
+    leftAnkle: [170, 210], rightAnkle: [182, 212],
+  });
+  const f = postureFeatures(onBack, boxAround(onBack));
+  check(f.kneeDrop < -0.25, 'knees sit above the hips', `kneeDrop=${f.kneeDrop.toFixed(2)}`);
+  const r = classifyPosture(onBack, boxAround(onBack), 0.9);
+  check(r.className === 'fall', 'classified as FALL, not sit', `${r.className} — ${r.reason}`);
+
+  // The floor is at -0.25 and not 0 because a real bench-sit was measured at
+  // -0.16, legs drawn up. That case must survive.
+  const benchSit = skeleton({
+    leftShoulder: [100, 100], rightShoulder: [112, 100],
+    leftHip: [100, 180], rightHip: [112, 180],
+    leftKnee: [140, 168], rightKnee: [152, 168],
+    leftAnkle: [140, 230], rightAnkle: [152, 230],
+  });
+  const fb = postureFeatures(benchSit, boxAround(benchSit));
+  check(
+    fb.kneeDrop < 0 && fb.kneeDrop > -0.25,
+    'the bench-sit case sits between 0 and the floor',
+    `kneeDrop=${fb.kneeDrop.toFixed(2)}`,
+  );
+  check(
+    classifyPosture(benchSit, boxAround(benchSit), 0.9).className === 'sit',
+    'a mildly-negative kneeDrop is still SIT',
+  );
+}
+
+// A box wider than it is tall means a horizontal body. This used to also require
+// torsoAngle >= 30, which is self-defeating: a body foreshortened along the view
+// axis has a LOW torso angle by construction.
+console.log('\n=== a wide box is a fall regardless of torso angle ===');
+{
+  // Lying along the view axis: the torso points at the lens, so shoulder-mid and
+  // hip-mid are nearly stacked and torsoAngle reads ~7deg - upright. Only the
+  // box gives it away. This is the prone-fall-view-axis shape.
+  const flat = skeleton({
+    leftShoulder: [195, 300], rightShoulder: [205, 300],
+    leftHip: [200, 340], rightHip: [210, 340],
+    leftKnee: [250, 342], rightKnee: [260, 342],
+    leftAnkle: [300, 344], rightAnkle: [310, 344],
+  });
+  const box = boxAround(flat);
+  const f = postureFeatures(flat, box);
+  check(f.aspect >= 1.5, 'box is wider than tall', `aspect=${f.aspect.toFixed(2)}`);
+  check(f.torsoAngle < 30, 'torso angle alone would NOT trip the gate', `${f.torsoAngle.toFixed(1)}deg`);
+  const r = classifyPosture(flat, box, 0.9);
+  check(r.className === 'fall', 'classified as FALL via the aspect hatch', `${r.className} — ${r.reason}`);
+
+  // An upright figure must stay well clear of the hatch.
+  const tall = upright();
+  const ft = postureFeatures(tall, boxAround(tall));
+  check(ft.aspect < 1.5, 'an upright figure is nowhere near the aspect gate', `aspect=${ft.aspect.toFixed(2)}`);
+}
+
 // What the *viewer* is told, which is a separate question from what the
 // classifier concluded. posture.js has to return some class at tier C/D so the
 // tracker has something to vote on, and it correctly returns the non-alarming

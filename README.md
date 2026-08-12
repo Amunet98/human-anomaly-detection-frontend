@@ -100,16 +100,21 @@ fixtures in `scripts/eval-fixtures/`:
 
 | | clean | perturbed |
 |---|---|---|
-| accuracy | **11/13 (84.6%)** | **63/78 (80.8%)** |
-| macro-F1 | 0.878 | 0.841 |
+| accuracy | **11/13 (84.6%)** | **66/78 (84.6%)** |
+| macro-F1 | 0.878 | 0.878 |
 
 "Perturbed" replays every fixture through hflip, grayscale, darken-40%,
 blur-3px, downscale-320w and centre-crop-80%. Per-class under perturbation:
-`fall` P=1.000 R=0.643, `sit` P=0.889 R=1.000, `stand` P=0.667 R=1.000.
-`squat` has no fixture yet and is excluded from macro-F1 — it's pinned by
-unit tests in `posture-check.mjs` instead.
+`fall` P=1.000 R=0.714, `sit` P=1.000 R=1.000, `stand` P=0.667 R=1.000.
+`squat` has no single-subject fixture and is excluded from macro-F1 — it's
+pinned by unit tests in `posture-check.mjs` and by `expectedAll` on the two
+croucher fixtures.
 
-**Do not read 80.8% as a deployment accuracy.** The fixtures were chosen
+Survival is **11/13 on every one of the six perturbations** — all 12 failing
+trials are the two KNOWN GAP fixtures replayed six times, and nothing else
+flips under any of them.
+
+**Do not read 84.6% as a deployment accuracy.** The fixtures were chosen
 *because* they were failure candidates — two are labelled KNOWN GAP and are
 expected to fail — so the set is adversarial by construction, not
 representative. Its job is to fail when the classifier regresses, and an
