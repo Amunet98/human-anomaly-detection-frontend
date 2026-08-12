@@ -95,26 +95,26 @@ from it.
 
 ## Accuracy
 
-From `npm run eval:robust`, measured 2026-08-12 against the 13 labelled
+From `npm run eval:robust`, measured 2026-08-12 against the 15 labelled
 fixtures in `scripts/eval-fixtures/`:
 
 | | clean | perturbed |
 |---|---|---|
-| accuracy | **11/13 (84.6%)** | **66/78 (84.6%)** |
-| macro-F1 | 0.878 | 0.878 |
+| accuracy | **13/15 (86.7%)** | **78/90 (86.7%)** |
+| macro-F1 | 0.905 | 0.905 |
 
 "Perturbed" replays every fixture through hflip, grayscale, darken-40%,
 blur-3px, downscale-320w and centre-crop-80%. Per-class under perturbation:
-`fall` P=1.000 R=0.714, `sit` P=1.000 R=1.000, `stand` P=0.667 R=1.000.
+`fall` P=1.000 R=0.750, `sit` P=1.000 R=1.000, `stand` P=0.750 R=1.000.
 `squat` has no single-subject fixture and is excluded from macro-F1 — it's
 pinned by unit tests in `posture-check.mjs` and by `expectedAll` on the two
 croucher fixtures.
 
-Survival is **11/13 on every one of the six perturbations** — all 12 failing
+Survival is **13/15 on every one of the six perturbations** — all 12 failing
 trials are the two KNOWN GAP fixtures replayed six times, and nothing else
 flips under any of them.
 
-**Do not read 84.6% as a deployment accuracy.** The fixtures were chosen
+**Do not read 86.7% as a deployment accuracy.** The fixtures were chosen
 *because* they were failure candidates — two are labelled KNOWN GAP and are
 expected to fail — so the set is adversarial by construction, not
 representative. Its job is to fail when the classifier regresses, and an

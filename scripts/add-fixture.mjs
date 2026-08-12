@@ -148,14 +148,35 @@ if (fs.existsSync(dest)) {
   console.error(`${name} already exists in eval-fixtures - pick another --name\n`);
   process.exit(1);
 }
-const labels = JSON.parse(fs.readFileSync(LABELS, 'utf8'));
-fs.copyFileSync(src, dest);
-labels.push({
+// Appended textually rather than by re-serialising the parsed array. labels.json
+// is hand-formatted - short entries on one line, long notes wrapped, expectedAll
+// arrays inline - and JSON.stringify(_, null, 2) reflows the entire file, which
+// buries a one-entry addition in a whole-file diff and explodes every
+// expectedAll across seven lines. The file is read by humans far more often than
+// by this script.
+const raw = fs.readFileSync(LABELS, 'utf8');
+const close = raw.lastIndexOf(']');
+if (close === -1) {
+  console.error(`${LABELS} does not end in a JSON array - refusing to edit it blind\n`);
+  process.exit(1);
+}
+const entry = {
   file: name,
   expected: expect,
   note: note || `added ${new Date().toISOString().slice(0, 10)}; survives ${survived}/${n} perturbations`,
-});
-fs.writeFileSync(LABELS, JSON.stringify(labels, null, 2) + '\n');
+};
+const before = raw.slice(0, close).replace(/\s*$/, '');
+const updated = `${before},\n\n  ${JSON.stringify(entry)}\n]\n`;
+
+// Never leave the file unparseable, whatever the source formatting was.
+try {
+  JSON.parse(updated);
+} catch (e) {
+  console.error(`refusing to write - the result would not parse: ${e.message}\n`);
+  process.exit(1);
+}
+fs.copyFileSync(src, dest);
+fs.writeFileSync(LABELS, updated);
 
 console.log(`Staged ${name} into eval-fixtures/ and labels.json.`);
 console.log('Now run `npm run eval:robust` and update the figures in MODEL_CARD.md.\n');
