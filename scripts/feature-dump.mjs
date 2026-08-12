@@ -2,6 +2,7 @@
 // 2023 corpus, and reports their distribution per ground-truth class.
 //
 // Run with:  node scripts/feature-dump.mjs [--limit N] [--out FILE] [--keypoints]
+//                                          [--corpus DIR]
 //
 // With --keypoints it doubles as a training-set exporter: every row gains the
 // raw 17-joint pose, which is the input a keypoints -> posture classifier would
@@ -46,7 +47,15 @@ const HERE = path.dirname(fileURLToPath(import.meta.url));
 const FRONTEND = path.resolve(HERE, '..');
 const ROOT = path.resolve(FRONTEND, '..');
 const BACKEND = path.join(ROOT, 'human-anomaly-detection-backend-main');
-const CORPUS = path.join(ROOT, 'corpus-2023');
+
+// Which staged corpus to read. build-corpus.py writes corpus-2023 (falls) and
+// corpus-polar (sit/squat/stand) in the same manifest shape, so this script runs
+// over either unchanged - which is the point of them sharing a shape.
+const corpusArg = (() => {
+  const i = process.argv.indexOf('--corpus');
+  return i !== -1 && process.argv[i + 1] ? process.argv[i + 1] : 'corpus-2023';
+})();
+const CORPUS = path.isAbsolute(corpusArg) ? corpusArg : path.join(ROOT, corpusArg);
 
 if (!fs.existsSync(path.join(BACKEND, 'node_modules'))) {
   console.error(`Backend repo not found (or deps not installed) at:\n  ${BACKEND}\n`);
@@ -55,7 +64,8 @@ if (!fs.existsSync(path.join(BACKEND, 'node_modules'))) {
 }
 if (!fs.existsSync(path.join(CORPUS, 'manifest.jsonl'))) {
   console.error(`Corpus not staged at:\n  ${CORPUS}\n`);
-  console.error('Run corpus-2023/build-corpus.py first (needs the BP drive mounted).');
+  console.error('Run scripts/calibration/build-corpus.py first, e.g.');
+  console.error('  python3 scripts/calibration/build-corpus.py --dataset polar');
   process.exit(2);
 }
 
