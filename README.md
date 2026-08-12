@@ -109,10 +109,12 @@ blur-3px, downscale-320w and centre-crop-80%. Per-class under perturbation:
 `squat` P=0.769 R=0.833.
 
 **`squat`'s R=0.833 is flattering.** All four of its fixtures are one person
-doing textbook gym squats; measured against the 4,924-image corpus the gate
-catches **48.1%** of ground-truth squats. That is deliberate — widening it
-costs about nine falls misread as `squat` per extra squat gained, and a fall
-read as `squat` is a missed alarm. See MODEL_CARD.
+doing textbook gym squats. Measured against the 4,924-image corpus its true
+recall is **44.3%** and its precision on labelled rows is **35.1%** — it is
+wrong more often than it is right, and its dominant error is calling a fall a
+crouch. It is kept because it costs nothing in fall recall: the squat gate runs
+after all three fall gates, so it only ever relabels detections they already
+declined. See MODEL_CARD.
 
 **macro-F1 now covers all four classes.** The previous 0.905 spanned only
 three — `squat` had no fixture and was excluded — so the two figures are not
