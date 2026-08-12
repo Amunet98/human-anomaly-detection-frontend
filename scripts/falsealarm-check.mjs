@@ -92,6 +92,7 @@ for (let i = 0; i < argv.length; i += 1) {
   }
 }
 const flag = (name, fallback) => (opts[name] !== undefined ? opts[name] : fallback);
+const sources = positional;
 const source = positional[0];
 
 if (!source) {
@@ -123,132 +124,107 @@ const EXPECT_FALLS = opts['--expect-falls'] === true;
 const DUMP = flag('--dump', null);
 const LIMIT = Number(flag('--limit', 0));
 
-// --- gather frames ----------------------------------------------------------
+// --- one clip -----------------------------------------------------------------
 
-let frameDir;
-let cleanup = null;
+// Each clip gets its own Tracker. Clips are separate recordings, so letting a
+// track survive across a boundary would associate two different people who
+// happen to occupy the same pixels - and could manufacture a sustained "fall"
+// out of two unrelated frames, which is exactly the artefact this script exists
+// to rule out.
+async function runClip(src) {
+  let frameDir = src;
+  let cleanup = null;
 
-if (fs.statSync(source).isDirectory()) {
-  frameDir = source;
-} else {
-  // Video: decode to JPEG once at the sampling rate. -q:v 2 is near-lossless;
-  // the detector letterboxes to 640 anyway, so anything finer is wasted disk.
-  if (!hasFfmpeg()) {
-    console.error('ffmpeg is needed to read a video file. Install it, or pass a folder of frames.');
-    process.exit(2);
+  if (!fs.statSync(src).isDirectory()) {
+    // Video: decode to JPEG once at the sampling rate. -q:v 2 is near-lossless;
+    // the detector letterboxes to 640 anyway, so finer is wasted disk.
+    if (!hasFfmpeg()) {
+      console.error('ffmpeg is needed to read a video file. Install it, or pass a folder of frames.');
+      process.exit(2);
+    }
+    frameDir = fs.mkdtempSync(path.join(os.tmpdir(), 'falsealarm-'));
+    cleanup = frameDir;
+    execFileSync('ffmpeg', ['-loglevel', 'error', '-i', src, '-vf', `fps=${FPS}`,
+                            '-q:v', '2', path.join(frameDir, 'f-%06d.jpg')]);
   }
-  frameDir = fs.mkdtempSync(path.join(os.tmpdir(), 'falsealarm-'));
-  cleanup = frameDir;
-  console.log(`decoding ${path.basename(source)} at ${FPS} fps ...`);
-  execFileSync('ffmpeg', ['-loglevel', 'error', '-i', source, '-vf', `fps=${FPS}`,
-                          '-q:v', '2', path.join(frameDir, 'f-%06d.jpg')]);
-}
 
-// Natural sort, not lexical. Frame order IS the measurement here - a tracker
-// fed shuffled frames associates nothing and reports a confident zero, which is
-// the worst possible failure mode because it looks like good news. ffmpeg pads
-// its output and the UR Fall sequences are padded too, so lexical would happen
-// to work for both; a hand-made folder of frame1..frame10.jpg would not, and
-// nothing would say so.
-const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
-let frames = fs
-  .readdirSync(frameDir)
-  .filter((f) => /\.(png|jpe?g)$/i.test(f))
-  .sort(collator.compare);
-// A frame folder recorded at 30fps does not need 30fps of inference: nothing
-// downstream runs faster than ~5fps and the deployed rates are 1-2. Subsample
-// to --fps and skip the rest, which is a 6x saving on the only expensive step.
-// (Video input is already decoded at --fps by ffmpeg, so this is a no-op there.)
-if (SOURCE_FPS > FPS) {
-  const step = SOURCE_FPS / FPS;
-  const kept = [];
-  for (let i = 0; i < frames.length; i += step) kept.push(frames[Math.round(i)]);
-  console.log(`  subsampling ${frames.length} frames at ${SOURCE_FPS} fps -> ${kept.length} at ${FPS} fps`);
-  frames = kept.filter(Boolean);
-}
-if (LIMIT) frames = frames.slice(0, LIMIT);
+  // Natural sort, not lexical. Frame order IS the measurement: a tracker fed
+  // shuffled frames associates nothing and reports a confident zero, which is
+  // the worst failure mode because it looks like good news. Both real sources
+  // here zero-pad so lexical would work by luck; frame1..frame10.jpg would not.
+  const collator = new Intl.Collator(undefined, { numeric: true, sensitivity: 'base' });
+  let frames = fs.readdirSync(frameDir)
+    .filter((f) => /\.(png|jpe?g)$/i.test(f))
+    .sort(collator.compare);
 
-if (!frames.length) {
-  console.error(`No .png/.jpg frames found in ${frameDir}`);
-  process.exit(2);
-}
-
-const durationS = frames.length / FPS;
-console.log(`\n=== ${LABEL} ===`);
-console.log(`  ${frames.length} frames at ${FPS} fps = ${fmtDuration(durationS)} of footage`);
-console.log(`  ${EXPECT_FALLS ? 'footage CONTAINS falls - reporting detections' :
-                                 'footage contains NO falls - every confirmation is a false alarm'}`);
-
-// --- inference, once ---------------------------------------------------------
-
-const results = [];
-let framesWithFall = 0;
-let detectionsTotal = 0;
-let detectionsFall = 0;
-
-process.stdout.write('  running the detector ');
-for (let i = 0; i < frames.length; i += 1) {
-  const buf = fs.readFileSync(path.join(frameDir, frames[i]));
-  const { detections } = await analyzeBuffer(buf);
-  // inference.js returns boxes as a [x1,y1,x2,y2] array; the tracker wants them
-  // as properties, the same shape postprocess.js hands it in the browser.
-  const dets = detections.map((d) => ({
-    className: d.className,
-    confidence: d.confidence,
-    tier: d.tier,
-    keypoints: d.keypoints,
-    x1: d.box[0], y1: d.box[1], x2: d.box[2], y2: d.box[3],
-  }));
-  results.push({ file: frames[i], t: (i / FPS) * 1000, dets });
-
-  detectionsTotal += dets.length;
-  const falls = dets.filter((d) => d.className === 'fall').length;
-  detectionsFall += falls;
-  if (falls) framesWithFall += 1;
-  if (i % 25 === 0) process.stdout.write('.');
-}
-console.log(' done');
-
-// The stills-equivalent figure, so the two are directly comparable rather than
-// quoted from different documents.
-console.log(`\n  PER-FRAME (what MODEL_CARD's 11.5% measures):`);
-console.log(`    ${detectionsFall} of ${detectionsTotal} person-detections read as \`fall\`` +
-            `  = ${pct(detectionsFall, detectionsTotal)}`);
-console.log(`    ${framesWithFall} of ${frames.length} frames contain at least one` +
-            `  = ${pct(framesWithFall, frames.length)}`);
-
-// --- tracker replay, per rate -----------------------------------------------
-
-console.log(`\n  POST-TRACKER (what a user would actually be shown):`);
-console.log(`    confirm requires ${TRACKER_TUNING.FALL_CONFIRM_MS}ms sustained` +
-            ` at >= ${TRACKER_TUNING.FALL_ENTER_CONF} over a ${TRACKER_TUNING.VOTE_WINDOW}-result window\n`);
-
-const dumped = new Set();
-let worstRate = null;
-
-for (const rate of REPLAY) {
-  if (rate > FPS) {
-    console.log(`    ${rate} fps  - skipped, cannot replay faster than the ${FPS} fps sampled`);
-    continue;
+  // A folder recorded at 30fps does not need 30fps of inference: nothing
+  // downstream runs faster than ~5fps. Subsampling here is a 6x saving on the
+  // only expensive step. (Video is already decoded at --fps, so this is a no-op.)
+  if (SOURCE_FPS > FPS) {
+    const step = SOURCE_FPS / FPS;
+    const kept = [];
+    for (let i = 0; i < frames.length; i += step) kept.push(frames[Math.round(i)]);
+    frames = kept.filter(Boolean);
   }
+  if (LIMIT) frames = frames.slice(0, LIMIT);
+  if (!frames.length) {
+    console.error(`  no .png/.jpg frames in ${src} - skipped`);
+    return null;
+  }
+
+  const results = [];
+  let framesWithFall = 0, detectionsTotal = 0, detectionsFall = 0;
+
+  for (const file of frames) {
+    const { detections } = await analyzeBuffer(fs.readFileSync(path.join(frameDir, file)));
+    // inference.js returns boxes as a [x1,y1,x2,y2] array; the tracker wants
+    // them as properties, the shape postprocess.js hands it in the browser.
+    const dets = detections.map((d) => ({
+      className: d.className, confidence: d.confidence, tier: d.tier, keypoints: d.keypoints,
+      x1: d.box[0], y1: d.box[1], x2: d.box[2], y2: d.box[3],
+    }));
+    results.push({ file, t: (results.length / FPS) * 1000, dets, dir: frameDir });
+    detectionsTotal += dets.length;
+    const falls = dets.filter((d) => d.className === 'fall').length;
+    detectionsFall += falls;
+    if (falls) framesWithFall += 1;
+  }
+
+  const byRate = new Map();
+  for (const rate of REPLAY) {
+    if (rate > FPS) continue;
+    byRate.set(rate, replay(results, rate));
+  }
+
+  return {
+    src, frameDir, cleanup, frames: frames.length, durationS: frames.length / FPS,
+    framesWithFall, detectionsTotal, detectionsFall, byRate,
+  };
+}
+
+// Replay the cached per-frame results through a fresh tracker at `rate`, and
+// return one entry per confirmed-fall episode.
+function replay(results, rate) {
   const stride = FPS / rate;
   const tracker = new Tracker();
   const episodes = [];
-  const open = new Map(); // trackId -> episode start time
+  const open = new Map();
 
   for (let i = 0; i < results.length; i += stride) {
     const r = results[Math.round(i)];
     if (!r) continue;
-    for (const track of tracker.update(r.dets, r.t)) {
+    const live = tracker.update(r.dets, r.t);
+    const liveIds = new Set(live.map((t) => t.id));
+    for (const track of live) {
       if (track.fallConfirmed && !open.has(track.id)) {
-        open.set(track.id, { start: r.t, file: r.file, conf: track.confidence, tier: track.tier });
+        open.set(track.id, { start: r.t, file: r.file, dir: r.dir, conf: track.confidence, tier: track.tier });
       } else if (!track.fallConfirmed && open.has(track.id)) {
         episodes.push({ ...open.get(track.id), end: r.t, id: track.id });
         open.delete(track.id);
       }
     }
-    // A track can disappear while still confirmed - close its episode too.
-    const liveIds = new Set(tracker.live(r.t).map((t) => t.id));
+    // A track can vanish while still confirmed - close its episode too, or it
+    // would be silently dropped and undercount the alarms.
     for (const [id, ep] of open) {
       if (!liveIds.has(id)) {
         episodes.push({ ...ep, end: r.t, id });
@@ -256,49 +232,99 @@ for (const rate of REPLAY) {
       }
     }
   }
-  for (const [id, ep] of open) episodes.push({ ...ep, end: results.at(-1).t, id });
+  const last = results.at(-1);
+  for (const [id, ep] of open) episodes.push({ ...ep, end: last.t, id });
+  return episodes;
+}
 
-  const perHour = episodes.length / (durationS / 3600);
+// --- run every clip -----------------------------------------------------------
+
+console.log(`\n=== ${LABEL} ===`);
+console.log(`  ${sources.length} clip${sources.length === 1 ? '' : 's'}, analysed at ${FPS} fps`);
+console.log(`  ${EXPECT_FALLS ? 'footage CONTAINS falls - reporting detections'
+                              : 'footage contains NO falls - every confirmation is a FALSE ALARM'}`);
+
+const clips = [];
+process.stdout.write('  running the detector ');
+for (const src of sources) {
+  const clip = await runClip(src);
+  if (clip) clips.push(clip);
+  process.stdout.write('.');
+}
+console.log(' done');
+
+if (!clips.length) {
+  console.error('nothing to report');
+  process.exit(2);
+}
+
+const totalFrames = clips.reduce((a, c) => a + c.frames, 0);
+const totalDuration = clips.reduce((a, c) => a + c.durationS, 0);
+const totalDets = clips.reduce((a, c) => a + c.detectionsTotal, 0);
+const totalFallDets = clips.reduce((a, c) => a + c.detectionsFall, 0);
+const totalFallFrames = clips.reduce((a, c) => a + c.framesWithFall, 0);
+
+console.log(`  ${totalFrames} frames = ${fmtDuration(totalDuration)} of footage`);
+
+console.log(`\n  PER-FRAME (what MODEL_CARD's 11.5% measures):`);
+console.log(`    ${totalFallDets} of ${totalDets} person-detections read as \`fall\`  = ${pct(totalFallDets, totalDets)}`);
+console.log(`    ${totalFallFrames} of ${totalFrames} frames contain at least one  = ${pct(totalFallFrames, totalFrames)}`);
+
+console.log(`\n  POST-TRACKER (what a user would actually be shown):`);
+console.log(`    confirm requires ${TRACKER_TUNING.FALL_CONFIRM_MS}ms sustained at >= ${TRACKER_TUNING.FALL_ENTER_CONF}` +
+            ` over a ${TRACKER_TUNING.VOTE_WINDOW}-result window\n`);
+
+const dumped = [];
+let worst = null;
+for (const rate of REPLAY) {
+  if (rate > FPS) {
+    console.log(`    ${String(rate).padStart(2)} fps  - skipped, cannot replay faster than the ${FPS} fps sampled`);
+    continue;
+  }
+  const eps = clips.flatMap((c) => (c.byRate.get(rate) || []).map((e) => ({ ...e, src: c.src })));
+  const perHour = eps.length / (totalDuration / 3600);
   const verb = EXPECT_FALLS ? 'confirmed fall' : 'FALSE ALARM';
-  console.log(`    ${String(rate).padStart(2)} fps  ${String(episodes.length).padStart(3)} ${verb}${episodes.length === 1 ? '' : 's'}` +
-              `   = ${perHour.toFixed(1)} per hour of footage` +
-              (rate === 2 ? '   <- the server\'s throttle' : '') +
-              (rate === 1 ? '   <- mid-range Android on WASM' : ''));
-  for (const ep of episodes.slice(0, 6)) {
-    console.log(`             track #${ep.id} at ${fmtDuration(ep.start / 1000)}` +
-                ` for ${((ep.end - ep.start) / 1000).toFixed(1)}s` +
-                `  conf ${ep.conf.toFixed(2)} tier ${ep.tier}  (${ep.file})`);
-    if (DUMP) dumped.add(ep.file);
+  const note = rate === 2 ? "   <- the server's throttle"
+             : rate === 1 ? '   <- mid-range Android on WASM' : '';
+  console.log(`    ${String(rate).padStart(2)} fps  ${String(eps.length).padStart(3)} ${verb}${eps.length === 1 ? '' : 's'}` +
+              `   = ${perHour.toFixed(1)} per hour${note}`);
+  for (const ep of eps.slice(0, 8)) {
+    console.log(`             ${path.basename(ep.src).padEnd(18)} at ${fmtDuration(ep.start / 1000)}` +
+                ` for ${((ep.end - ep.start) / 1000).toFixed(1)}s  conf ${ep.conf.toFixed(2)} tier ${ep.tier}`);
+    if (DUMP) dumped.push(ep);
   }
-  if (episodes.length > 6) console.log(`             ... and ${episodes.length - 6} more`);
-  if (worstRate === null || episodes.length > worstRate.n) worstRate = { rate, n: episodes.length };
+  if (eps.length > 8) console.log(`             ... and ${eps.length - 8} more`);
+  if (worst === null || eps.length > worst.n) worst = { rate, n: eps.length };
 }
 
-// --- how much the tracker is actually buying --------------------------------
-
-if (!EXPECT_FALLS && worstRate) {
+if (!EXPECT_FALLS && worst) {
   console.log(`\n  WHAT THE TRACKER SUPPRESSED:`);
-  console.log(`    ${framesWithFall} frames looked like a fall; ${worstRate.n} survived to a` +
-              ` confirmation at the worst rate (${worstRate.rate} fps).`);
-  if (framesWithFall && !worstRate.n) {
-    console.log(`    The 1.2s sustain absorbed all of them. That is the claim MODEL_CARD`);
+  console.log(`    ${totalFallFrames} frames looked like a fall; ${worst.n} survived to a confirmation` +
+              ` at the worst rate (${worst.rate} fps).`);
+  if (totalFallFrames && !worst.n) {
+    console.log(`    The ${TRACKER_TUNING.FALL_CONFIRM_MS}ms sustain absorbed all of them - the claim MODEL_CARD`);
     console.log(`    has been resting on the tracker for, now measured on this footage.`);
-  } else if (worstRate.n) {
-    console.log(`    The sustain did NOT absorb everything. Look at the frames above -`);
-    console.log(`    a crouch held for over 1.2s is the expected culprit.`);
+  } else if (worst.n) {
+    console.log(`    The sustain did NOT absorb everything. A crouch held past ${TRACKER_TUNING.FALL_CONFIRM_MS}ms`);
+    console.log(`    is the expected culprit - pass --dump DIR to look at the frames.`);
+  } else if (!totalFallFrames) {
+    console.log(`    Nothing even looked like a fall per-frame, so the tracker was never`);
+    console.log(`    tested here. This footage does not exercise the question.`);
   }
 }
 
-if (DUMP && dumped.size) {
+if (DUMP && dumped.length) {
   fs.mkdirSync(DUMP, { recursive: true });
-  for (const f of dumped) fs.copyFileSync(path.join(frameDir, f), path.join(DUMP, f));
-  console.log(`\n  wrote ${dumped.size} triggering frames to ${DUMP}`);
+  for (const ep of dumped) {
+    fs.copyFileSync(path.join(ep.dir, ep.file), path.join(DUMP, `${path.basename(ep.src)}-${ep.file}`));
+  }
+  console.log(`\n  wrote ${dumped.length} triggering frames to ${DUMP}`);
 }
 
-console.log(`\n  Read this as a measurement of THIS footage, not of the product. One`);
-console.log(`  person in one room is a data point; a deployment figure needs many.\n`);
+console.log(`\n  Read this as a measurement of THIS footage, not of the product. A`);
+console.log(`  deployment figure needs many people, rooms and camera heights.\n`);
 
-if (cleanup) fs.rmSync(cleanup, { recursive: true, force: true });
+for (const c of clips) if (c.cleanup) fs.rmSync(c.cleanup, { recursive: true, force: true });
 
 // --- helpers ----------------------------------------------------------------
 
