@@ -12,10 +12,11 @@
     "tracker": "node scripts/tracker-check.mjs",
     "viewport": "node scripts/viewport-check.mjs",
     "posture": "node scripts/posture-check.mjs",
+    "squat-probe": "node scripts/squat-probe-check.mjs",
     "fixture": "node scripts/add-fixture.mjs",
     "eval": "node scripts/eval-check.mjs",
     "eval:robust": "node scripts/eval-check.mjs --augment",
-    "check": "npm run tracker && npm run viewport && npm run posture"
+    "check": "npm run tracker && npm run viewport && npm run posture && npm run squat-probe"
   },
   "dependencies": {
     "@tabler/icons-react": "^3.44.0",
