@@ -25,7 +25,7 @@ engines, switchable in the UI:
 | engine | where inference happens | cost |
 |---|---|---|
 | **server** (default) | a frame every 500 ms is POSTed over the socket to the [backend](https://github.com/Amunet98/human-anomaly-detection-backend) | no download; bounded by the network and the backend's cold start |
-| **browser** | `onnxruntime-web` in a Web Worker, WebGPU where available | one ~15 MB model download, cached; then real-time and fully offline |
+| **browser** | `onnxruntime-web` in a Web Worker, WebGPU where available | one ~13 MB model download, cached; then real-time and fully offline |
 
 Both engines feed the same tracker, so the two paths agree on what they
 report. Upload and URL checks always go to the backend's `/analyze`.
@@ -171,7 +171,7 @@ prefix `@vercel/microfrontends` assigns this project, and everything Vite emits
 into it is content-hashed — JS, CSS, the onnxruntime `.wasm`, and `best.onnx`.
 A rebuild or a retrain changes the hash and therefore the URL, so nothing can go
 stale. Without this, Vercel serves `max-age=0, must-revalidate` and every page
-load pays a revalidation round-trip, which matters most for the ~12 MB model.
+load pays a revalidation round-trip, which matters most for the ~13 MB model.
 
 Note this is also why assets must be *imported* (`import url from './x?url'`)
 rather than dropped in `public/`. Files at the public root are unreachable when
