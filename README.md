@@ -106,32 +106,43 @@ fixtures in `scripts/eval-fixtures/`:
 
 | | clean | perturbed |
 |---|---|---|
-| accuracy | **16/19 (84.2%)** | **98/114 (86.0%)** |
-| macro-F1 | 0.838 | 0.859 |
+| accuracy | **17/19 (89.5%)** | **102/114 (89.5%)** |
+| macro-F1 | 0.901 | 0.901 |
+
+**Updated 2026-08-12 (second time that day) by the squat probe** (see the
+sibling backend repo's `training/MODEL_CARD.md`), from 16/19 (84.2%) / 0.838
+clean and 98/114 (86.0%) / 0.859 perturbed. This README was left on the
+pre-probe numbers for a week; those are now corrected to match. Exactly one
+fixture moved, `squat-ceiling-gap.jpg`. `eval:robust` runs against the
+*backend* repo's `posture.js`/`squat-probe.js`/`inference.js` (see the harness
+note in `scripts/eval-check.mjs`), so a change shipped there moves these
+numbers even when nothing in this repo changes — confirmed reproducible
+across repeated runs, not a fluke of one measurement.
 
 "Perturbed" replays every fixture through hflip, grayscale, darken-40%,
 blur-3px, downscale-320w and centre-crop-80%. Per-class under perturbation:
 `fall` P=1.000 R=0.750, `sit` P=1.000 R=1.000, `stand` P=0.750 R=1.000,
-`squat` P=0.769 R=0.833.
+`squat` P=0.800 R=1.000.
 
-**`squat`'s R=0.833 is flattering.** All four of its fixtures are one person
-doing textbook gym squats. Measured against the 4,924-image corpus its true
-recall is **44.3%** and its precision on labelled rows is **35.1%** — it is
-wrong more often than it is right, and its dominant error is calling a fall a
-crouch. It is kept because it costs nothing in fall recall: the squat gate runs
-after all three fall gates, so it only ever relabels detections they already
-declined. See MODEL_CARD.
+**Don't read `squat`'s R=1.000 as the class's recall.** All four of its
+fixtures are one person doing textbook gym squats. Measured against the
+4,924-image corpus its true recall is **44.3%** and its precision on labelled
+rows is **35.1%** — it is wrong more often than it is right, and its dominant
+error is calling a fall a crouch. It is kept because it costs nothing in fall
+recall: the squat gate runs after all three fall gates, so it only ever
+relabels detections they already declined. See MODEL_CARD.
 
 **macro-F1 now covers all four classes.** The previous 0.905 spanned only
 three — `squat` had no fixture and was excluded — so the two figures are not
 comparable. Adding a fourth, harder class lowers the average while making it
 mean more.
 
-Three fixtures are labelled KNOWN GAP and are expected to fail: two falls that
-2D geometry cannot express, and one squat sitting 0.05 the wrong side of a
-threshold whose alternative costs fall recall.
+Two fixtures are labelled KNOWN GAP and are expected to fail — falls that 2D
+geometry cannot express. A third, a squat sitting 0.05 the wrong side of a
+threshold whose alternative costs fall recall, used to fail here too; the
+squat probe now catches it, which is the one fixture that moved.
 
-**Do not read 86.0% as a deployment accuracy.** The fixtures were chosen
+**Do not read 89.5% as a deployment accuracy.** The fixtures were chosen
 *because* they were failure candidates — three are labelled KNOWN GAP and are
 expected to fail — so the set is adversarial by construction, not
 representative. Its job is to fail when the classifier regresses, and an
