@@ -86,7 +86,7 @@ npm run dev
 - `npm run dev` — start the Vite dev server
 - `npm run build` — production build
 - `npm run lint` — ESLint
-- `npm run check` — the standard pre-commit suite: `tracker` + `viewport` + `posture`
+- `npm run check` — the standard pre-commit suite: `tracker` + `viewport` + `posture` + `squat-probe`
 - `npm run parity` — asserts the browser and server `posture.js` agree
 - `npm run eval` / `npm run eval:robust` — accuracy against the labelled fixtures
 - `npm run fixture -- <image> --expect <class>` — vet a candidate fixture before
